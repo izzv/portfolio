@@ -1,4 +1,5 @@
 import { Spotify } from "spotify-lyrics-ts";
+import { observePlayback } from "./playClock";
 import {
     searchSpotifyTrack,
     getOwnerCurrentlyPlaying,
@@ -127,6 +128,8 @@ export type NowPlaying = {
     spotifyId?: string;
     progressMs?: number;
     fetchedAt?: number;
+    /** true when `progressMs` is inferred, not read from Spotify */
+    estimated?: boolean;
 };
 
 export async function getNowPlaying(): Promise<NowPlaying> {
@@ -144,6 +147,7 @@ export async function getNowPlaying(): Promise<NowPlaying> {
             spotifyUrl: owner.url,
             spotifyId: owner.id,
             fetchedAt: Date.now(),
+            estimated: false,
         };
     }
 
@@ -175,6 +179,17 @@ export async function getNowPlaying(): Promise<NowPlaying> {
         if (sp.preview) np.preview = sp.preview;
         np.spotifyUrl = sp.url;
         np.spotifyId = sp.id;
+    }
+
+    // No owner token: fall back to the estimate so lyrics still advance.
+    const est = observePlayback(
+        `${np.artist}\u0000${np.name}`.toLowerCase(),
+        np.isPlaying,
+    );
+    if (est) {
+        np.progressMs = est.progressMs;
+        np.fetchedAt = est.at;
+        np.estimated = true;
     }
     return np;
 }
@@ -350,24 +365,28 @@ export async function resolvePreview(
 }
 
 export type LyricLine = { t: number; text: string };
+export type Lyrics = { lines: LyricLine[]; synced: boolean };
 
-function parseLrc(synced?: string, plain?: string): { lines: LyricLine[] } {
+function parseLrc(synced?: string, plain?: string): Lyrics {
     const lines: LyricLine[] = [];
     if (synced) {
         for (const raw of synced.split(/\r?\n/)) {
-            const m = raw.match(/\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)/);
+            // [mm:ss.xx] or [mm:ss:xx] (some providers use a colon)
+            const m = raw.match(/\[(\d+):(\d+(?:[.:]\d+)?)\]\s*(.*)/);
             if (m) {
-                const t = Number(m[1]) * 60 + parseFloat(m[2]);
+                const t = Number(m[1]) * 60 + parseFloat(m[2].replace(":", "."));
                 const text = m[3].trim();
                 if (text) lines.push({ t, text });
             }
         }
-    } else if (plain) {
+    }
+    // Plain lyrics carry no timing, so they stay on the fallback cycle.
+    if (!lines.length && plain) {
         plain.split(/\r?\n/).forEach((text, i) => {
             if (text.trim()) lines.push({ t: i * 3, text: text.trim() });
         });
     }
-    return { lines };
+    return { lines, synced: lines.length > 0 && !!synced };
 }
 
 export async function getLyrics(
@@ -375,7 +394,7 @@ export async function getLyrics(
     track: string,
     album = "",
     spotifyId = "",
-): Promise<{ lines: LyricLine[] }> {
+): Promise<Lyrics> {
     if (spotifyId) {
         const cookie = process.env.SP_DC_COOKIE;
         if (cookie) {
@@ -416,5 +435,5 @@ export async function getLyrics(
             if (hit) return parseLrc(hit.syncedLyrics, hit.plainLyrics);
         }
     } catch {}
-    return { lines: [] };
+    return { lines: [], synced: false };
 }

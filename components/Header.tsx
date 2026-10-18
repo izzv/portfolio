@@ -18,8 +18,14 @@ function bright([r, g, b]: RGB): string {
 export default function Header() {
     const { now, lanyard, discordId, primary, secondary } = useExperience();
     const [lines, setLines] = useState<Line[]>([]);
+    const [synced, setSynced] = useState(false);
     const [idx, setIdx] = useState(0);
     const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+    // Playback clock: { position in seconds, wall clock it was measured at }.
+    // Re-anchored on every `/api/nowplaying` poll so it cannot drift.
+    const anchor = useRef<{ pos: number; at: number; key: string } | null>(null);
+    const fill = useRef<HTMLSpanElement>(null);
+    const trackKey = now?.name ? `${now.artist}\u0000${now.name}` : "";
     const handle = lanyard?.username
         ? `@${lanyard.username}`
         : site.socials.discordHandle
@@ -45,9 +51,14 @@ export default function Header() {
     };
 
     useEffect(() => {
-        if (!now?.name) return;
+        if (!now?.name) {
+            setLines([]);
+            setSynced(false);
+            return;
+        }
         let active = true;
         setLines([]);
+        setSynced(false);
         setIdx(0);
         (async () => {
             try {
@@ -57,7 +68,10 @@ export default function Header() {
                         { cache: "no-store" },
                     )
                 ).json();
-                if (active && ly?.lines?.length) setLines(ly.lines);
+                if (active && ly?.lines?.length) {
+                    setLines(ly.lines);
+                    setSynced(ly.synced === true);
+                }
             } catch {}
         })();
         return () => {
@@ -65,34 +79,71 @@ export default function Header() {
         };
     }, [now?.name, now?.artist, now?.album]);
 
+    // Pin the clock to the server's position on every poll.
     useEffect(() => {
-        if (!lines.length) return;
-        const synced =
-            typeof now?.progressMs === "number" &&
-            typeof now?.fetchedAt === "number";
-        if (synced && now?.isPlaying) {
-            const tick = () => {
-                const pos =
-                    (now.progressMs! + (Date.now() - now.fetchedAt!)) / 1000;
-                let i = 0;
+        if (!now?.name || typeof now.progressMs !== "number") {
+            anchor.current = null;
+            return;
+        }
+        anchor.current = {
+            pos: now.progressMs / 1000,
+            at: now.fetchedAt ?? Date.now(),
+            key: trackKey,
+        };
+    }, [trackKey, now?.name, now?.progressMs, now?.fetchedAt]);
+
+    // Synced mode: drive the active line and the progress hairline from the
+    // clock on every frame, so line changes land on the syllable instead of
+    // drifting a few hundred ms behind a fixed interval.
+    useEffect(() => {
+        if (!lines.length || !synced) return;
+        let raf = 0;
+        const tick = () => {
+            const a = anchor.current;
+            if (a) {
+                const live = now?.isPlaying === false ? 0 : (Date.now() - a.at) / 1000;
+                const pos = a.pos + live;
+                let i = -1;
                 for (let k = 0; k < lines.length; k++) {
                     if (lines[k].t <= pos) i = k;
                     else break;
                 }
-                setIdx(i);
-            };
-            tick();
-            timer.current = setInterval(tick, 350);
-        } else {
-            timer.current = setInterval(
-                () => setIdx((i) => (i + 1) % lines.length),
-                3200,
-            );
-        }
+                setIdx((p) => (p === i ? p : i));
+                const el = fill.current;
+                if (el) {
+                    const start = lines[Math.max(0, i)]?.t ?? 0;
+                    const end = lines[i + 1]?.t ?? start + 5;
+                    const frac =
+                        i < 0
+                            ? 0
+                            : Math.min(
+                                  1,
+                                  Math.max(
+                                      0,
+                                      (pos - start) / Math.max(0.4, end - start),
+                                  ),
+                              );
+                    el.style.transform = `scaleX(${frac.toFixed(4)})`;
+                }
+            }
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, [lines, synced, now?.isPlaying, now?.progressMs, now?.fetchedAt]);
+
+    // Unsynced lyrics have no real timestamps, so they keep a gentle cycle.
+    useEffect(() => {
+        if (!lines.length || synced || !now?.isPlaying) return;
+        setIdx(0);
+        timer.current = setInterval(
+            () => setIdx((i) => (i + 1) % lines.length),
+            3200,
+        );
         return () => {
             if (timer.current) clearInterval(timer.current);
         };
-    }, [lines, now?.progressMs, now?.fetchedAt, now?.isPlaying]);
+    }, [lines, synced, now?.isPlaying]);
 
     return (
         <div className="relative w-full">
@@ -121,7 +172,7 @@ export default function Header() {
 
             {now?.name && (
                 <div className="absolute right-0 bottom-0 flex w-[60%] flex-col items-end gap-1.5">
-                    {lines.length > 0 && (
+                    {lines.length > 0 && now.isPlaying && (
                         <div className="w-full overflow-hidden text-right">
                             <div key={idx} className="lyric-shift">
                                 <div className="h-4 truncate text-[11px] leading-4 text-white/25">
@@ -134,6 +185,18 @@ export default function Header() {
                                     {lines[idx + 1]?.text || ""}
                                 </div>
                             </div>
+                            <span className="mt-1 block h-[2px] w-full overflow-hidden rounded-full bg-white/10">
+                                <span
+                                    ref={fill}
+                                    className="block h-full w-full origin-left rounded-full bg-white/70"
+                                    style={{
+                                        transform: "scaleX(0)",
+                                        opacity: synced ? 1 : 0,
+                                        transition: "opacity 320ms ease",
+                                        willChange: "transform",
+                                    }}
+                                />
+                            </span>
                         </div>
                     )}
 

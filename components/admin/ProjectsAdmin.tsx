@@ -81,6 +81,7 @@ export default function ProjectsAdmin({ initial }: { initial: Project[] }) {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [savedAt, setSavedAt] = useState<number | null>(null);
+    const [storageWarning, setStorageWarning] = useState<string | null>(null);
 
     useEffect(() => {
         if (!dirty) return;
@@ -153,11 +154,18 @@ export default function ProjectsAdmin({ initial }: { initial: Project[] }) {
             const data = (await res.json().catch(() => ({}))) as {
                 projects?: Project[];
                 error?: string;
+                detail?: string;
+                warning?: string | null;
+                storage?: string;
             };
             if (!res.ok || !data.projects) {
-                throw new Error(data.error || `save failed (${res.status})`);
+                throw new Error(
+                    [data.error, data.detail].filter(Boolean).join(" — ") ||
+                        `save failed (${res.status})`,
+                );
             }
             setItems(data.projects);
+            setStorageWarning(data.warning ?? null);
             setDirty(false);
             setSavedAt(Date.now());
             router.refresh();
@@ -233,6 +241,12 @@ export default function ProjectsAdmin({ initial }: { initial: Project[] }) {
                 {error && (
                     <p className="rounded-md border border-red-400/25 bg-red-400/[0.07] px-3 py-2 text-xs text-red-200/90">
                         {error}
+                    </p>
+                )}
+
+                {storageWarning && (
+                    <p className="rounded-md border border-amber-300/25 bg-amber-300/[0.06] px-3 py-2 text-xs text-amber-100/85">
+                        {storageWarning}
                     </p>
                 )}
 

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { isAuthed } from "@/lib/adminAuth";
-import { getProjects, saveProjects } from "@/lib/projectsStore";
+import {
+    getProjects,
+    saveProjects,
+    storageMode,
+    storageWarning,
+} from "@/lib/projectsStore";
 import { log } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -29,8 +34,10 @@ async function guard() {
 export async function GET() {
     const denied = await guard();
     if (denied) return denied;
+    const projects = await getProjects();
+    const storage = storageMode();
     return NextResponse.json(
-        { projects: await getProjects() },
+        { projects, storage, warning: storageWarning(storage) },
         { headers: { "Cache-Control": "no-store" } },
     );
 }
@@ -73,17 +80,24 @@ export async function PUT(req: NextRequest) {
     try {
         const projects = await saveProjects(projectsInput);
         revalidatePath("/projects");
-        log("info", "admin", "projects saved", { count: projects.length });
+        log("info", "admin", "projects saved", {
+            count: projects.length,
+            storage: storageMode(),
+        });
+        const storage = storageMode();
         return NextResponse.json(
-            { projects },
+            { projects, storage, warning: storageWarning(storage) },
             { headers: { "Cache-Control": "no-store" } },
         );
     } catch (e: unknown) {
-        log("error", "admin", "failed to save projects", {
-            error: e instanceof Error ? e.message : String(e),
-        });
+        const detail = e instanceof Error ? e.message : String(e);
+        log("error", "admin", "failed to save projects", { error: detail });
         return NextResponse.json(
-            { error: "could not write projects.json" },
+            {
+                error: "could not write projects.json",
+                detail,
+                storage: storageMode(),
+            },
             { status: 500 },
         );
     }

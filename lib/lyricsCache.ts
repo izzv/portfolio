@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import type { LyricLine } from "./lastfm";
+import type { LyricLine, Lyrics } from "./lastfm";
 
 const FILE = path.join(process.cwd(), "lyricscache.json");
 
@@ -9,6 +9,7 @@ type Entry = {
     track: string;
     album: string;
     lines: LyricLine[];
+    synced?: boolean;
     savedAt: number;
 };
 
@@ -37,10 +38,12 @@ export async function getCachedLyrics(
     artist: string,
     track: string,
     spotifyId = "",
-): Promise<LyricLine[] | null> {
+): Promise<Lyrics | null> {
     const store = await load();
     const entry = store[keyOf(artist, track, spotifyId)];
-    return entry?.lines?.length ? entry.lines : null;
+    if (!entry?.lines?.length) return null;
+    // Entries written before `synced` existed were time-stamped already.
+    return { lines: entry.lines, synced: entry.synced ?? true };
 }
 
 export async function saveLyrics(
@@ -49,6 +52,7 @@ export async function saveLyrics(
     album: string,
     lines: LyricLine[],
     spotifyId = "",
+    synced = false,
 ): Promise<void> {
     if (!lines?.length) return;
     const store = await load();
@@ -57,6 +61,7 @@ export async function saveLyrics(
         track,
         album,
         lines,
+        synced,
         savedAt: Date.now(),
     };
     writeChain = writeChain.then(async () => {

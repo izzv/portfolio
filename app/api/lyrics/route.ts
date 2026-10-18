@@ -14,19 +14,26 @@ export async function GET(req: NextRequest) {
         const cached = await getCachedLyrics(artist, track, spotifyId);
         if (cached) {
             return NextResponse.json(
-                { lines: cached, cached: true },
+                { ...cached, cached: true },
                 { headers: { "Cache-Control": "no-store" } },
             );
         }
         const res = await getLyrics(artist, track, album, spotifyId);
         if (res.lines?.length)
-            await saveLyrics(artist, track, album, res.lines, spotifyId);
+            await saveLyrics(
+                artist,
+                track,
+                album,
+                res.lines,
+                spotifyId,
+                res.synced,
+            );
         return NextResponse.json(res, {
             headers: { "Cache-Control": "no-store" },
         });
     } catch (e: any) {
         return NextResponse.json(
-            { lines: [], error: e?.message },
+            { lines: [], synced: false, error: e?.message },
             { status: 200 },
         );
     }

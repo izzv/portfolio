@@ -8,3 +8,4 @@ spotifycache.json
 viewscount.json
 viewscount.enc
 *.tsbuildinfo
+projects.json.*.tmp

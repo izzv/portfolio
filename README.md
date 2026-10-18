@@ -231,6 +231,26 @@ sharp at any viewport size and the layered groups can move independently.
 To use a photograph instead, drop it in `public/media/` and swap the `<svg>` for
 an `<img>` — the petals, sway and parallax layers wrap it unchanged.
 
+## Lyrics
+
+`/api/lyrics` returns `{ lines, synced }`, where `synced` is true only when the
+provider gave real LRC timestamps (`spotify-lyrics-ts` or lrclib). The flag is
+cached alongside the lines so a second visit doesn't re-fetch.
+
+`components/Header.tsx` turns that into playback-following lyrics:
+
+- the position comes from `progressMs` + `fetchedAt` in `/api/nowplaying`, and is
+  re-anchored on every 5s poll, so it cannot drift
+- a `requestAnimationFrame` loop picks the active line and sets the progress
+  hairline's `scaleX`, so transitions land on the exact timestamp
+- unsynced (plain) lyrics have no timestamps, so they keep the old 3.2s cycle,
+  and the hairline stays hidden
+
+Exact timing needs Spotify owner credentials. Without them `lib/playClock.ts`
+returns an estimate anchored on the first poll that saw the track playing, so
+the words follow the song approximately (and only from the point the server
+noticed it).
+
 ## Motion
 
 All page motion lives in `app/globals.css` (this project has no Tailwind
@@ -272,17 +292,29 @@ Environment variables (`LASTFM_*`, `VIEWS_SECRET`, `ADMIN_PASSWORD`,
 `ADMIN_SECRET`, …) must be added in the Vercel dashboard too — `.env.local` is
 never committed.
 
-**Project saves on Vercel:** the admin writes `projects.json` to disk, which
-works locally but not on a read-only/serverless filesystem. On Vercel, commit
-`projects.json` and redeploy, or move the store to durable storage (Blob/KV)
-before relying on the editor there.
+**Project saves on Vercel:** the deployment filesystem is read-only, so
+`lib/projectsStore.ts` picks its backend at runtime:
+
+| Mode | When | Behaviour |
+| --- | --- | --- |
+| `blob` | `BLOB_READ_WRITE_TOKEN` is set | Durable: saves go to a Vercel Blob named `projects.json`, and every instance reads it back |
+| `file` | no token, writable dir | Writes `projects.json` in the repo root (local dev, VPS) |
+| `temporary` | no token, read-only dir | Writes to the OS temp dir, returns a warning — the save works but dies with the instance |
+
+To make production saves permanent: **Vercel → Storage → Create → Blob**, pick
+a **public** store, connect it to the project, and redeploy. Vercel injects
+`BLOB_READ_WRITE_TOKEN` automatically; set it in `.env.local` too if you want
+the same behaviour locally. The admin page shows a yellow banner whenever it is
+running in `temporary` mode, and a failed blob write returns the real reason
+(e.g. `This store does not exist.`) instead of a generic 500.
 
 ## Configuration
 
 `.env.local` expects: `VIEWS_SECRET`, `LASTFM_API_KEY`, `LASTFM_API_SECRET`,
 `LASTFM_USER`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`,
 `SPOTIFY_REFRESH_TOKEN`, `SP_DC_COOKIE`, plus `ADMIN_PASSWORD` and
-`ADMIN_SECRET` for `/admin/projects`. Both admin values are required — without
+`ADMIN_SECRET` for `/admin/projects`, and optionally
+`BLOB_READ_WRITE_TOKEN` for durable project saves. Both admin values are required — without
 `ADMIN_PASSWORD` the login page explains the missing config instead of accepting
 a blank password, and `ADMIN_SECRET` (falls back to `VIEWS_SECRET`) is what
 signs the session cookie.
@@ -297,8 +329,12 @@ preview, so the favourite tab plays).
   `America/New_York`; both were unspecified.
 - Discord avatar/presence requires the account to be monitored by Lanyard; the
   static handle is the fallback.
-- Lyrics are best-effort: `/api/lyrics` returns `{"lines":[]}` for tracks the
-  provider doesn't know, in which case the header simply omits the lyric block.
+- Lyrics are best-effort: `/api/lyrics` returns `{"lines":[],"synced":false}`
+  for tracks the provider doesn't know, in which case the header omits the block.
+- Lyric timing is exact only with Spotify owner credentials (`progress_ms`).
+  Without them, `lib/playClock.ts` anchors on the first poll that saw the track
+  playing and counts from there: a track that started before the server first
+  saw it (or before a deploy) reads late, and seeks are invisible.
 - Project data is a JSON file, so it needs a writable filesystem that persists
   between requests (a normal VPS/container). On a read-only or ephemeral host the
   admin save returns `500`; commit `projects.json` and redeploy instead, since
