@@ -2,6 +2,7 @@ export const site = {
     name: "ryan",
     age: 0,
     greeting: "hey visitor",
+    tagline: "building things for the internet.",
     timezone: "America/New_York",
     socials: {
         discord: "1466155972379672871",

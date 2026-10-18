@@ -210,7 +210,7 @@ Confirmed:
 - **Adding a contact card** → append to `site.contacts`; the grid renders it and
   picks an icon from `BRAND_ICON` by `platform`. Add the icon there if the
   platform is new.
-- **Adding a biolink** → append to `site.biolinks`; omit `img` if there's no avatar. The page currently points at two external profiles (`https://wsp.baby/yo`, `https://injuri.ng/no`).
+- **Adding a biolink** → append to `site.biolinks`; omit `img` and the pill falls back to a letter tile. `/biolinks` renders as one embed-style card (`app/biolinks/page.tsx` + the `.embed-*` rules in `app/globals.css`): a hero banner with `site.tagline`, then every biolink plus the socials from `site.socials` as pills, so adding a link needs no markup change. The page currently points at two external profiles (`https://wsp.baby/yo`, `https://injuri.ng/no`).
 - **Last.fm account** → `.env.local` (`LASTFM_USER`) plus `socials.lastfm`.
 - **Timezone** → `site.timezone` (used by `LocalTime`).
 
@@ -259,7 +259,9 @@ runtime, so utility classes alone would not animate anything):
 - `.page-enter` — fade/rise on every route change, re-keyed by `pathname` in
   `components/PageTransition.tsx`
 - `.anim-item` — staggered reveal, delay set per item inline
-- `.lift` — hover lift shared by project, contact, biolinks and home cards
+- `.lift` — hover lift shared by project, contact and home cards
+- biolinks embed — `.embed-wash` drifting banner light, `.embed-dot` float, the
+  name/tagline rise, staggered `.embed-pill` reveals and a hover lift per pill
 - `.anim-glow` — slow glow pulse available for status dots
 - background scene — `.bb-sway-far` / `.bb-sway-mid` / `.bb-sway-near` canopy
   sway at three speeds, `.bb-art` 54s breathe zoom, `.bb-petal` falling petals
