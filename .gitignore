@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+.env.local
+*.log
+lyricscache.json
+spotifycache.json
+viewscount.json
+viewscount.enc
+*.tsbuildinfo
