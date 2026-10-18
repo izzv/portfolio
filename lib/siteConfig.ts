@@ -32,6 +32,8 @@ export type Commission = {
     sponsor: string;
     sponsorUrl: string;
     sponsorIcon: string;
+    /** comma separated, shown on /commissions — payment is crypto only */
+    coins: string;
 };
 
 export type Biolink = {
@@ -84,17 +86,19 @@ export const DEFAULT_SITE: SiteConfig = {
         robloxHandle: "coldgrieff",
     },
     commission: {
-        enabled: false,
+        enabled: true,
         label: "commissions",
         price: "$50+",
         sponsor: "me",
         sponsorUrl: "/contact",
         sponsorIcon: "",
+        coins: "BTC, ETH, USDT, SOL, LTC",
     },
     nav: [
         { label: "Home", href: "/", icon: "home", hidden: false },
         { label: "Music", href: "/music", icon: "music", hidden: false },
         { label: "Projects", href: "/projects", icon: "projects", hidden: false },
+        { label: "Commissions", href: "/commissions", icon: "coin", hidden: false },
         { label: "Skills", href: "/skills", icon: "skills", hidden: false },
         { label: "Biolinks", href: "/biolinks", icon: "links", hidden: false },
         { label: "Guestbook", href: "/guestbook", icon: "guestbook", hidden: false },
@@ -292,6 +296,7 @@ function normalizeCommission(value: unknown): Commission {
         sponsor: text(r.sponsor, d.sponsor, 60),
         sponsorUrl: link(r.sponsorUrl, d.sponsorUrl),
         sponsorIcon: link(r.sponsorIcon, d.sponsorIcon),
+        coins: text(r.coins, d.coins, 140),
     };
 }
 

@@ -49,6 +49,12 @@ export default function CommissionBar() {
                         <span className="hidden text-xs text-white/30 sm:inline">
                             ·
                         </span>
+                        <span className="hidden text-[10px] font-medium uppercase tracking-wider text-emerald-200/60 sm:inline">
+                            crypto only
+                        </span>
+                        <span className="hidden text-xs text-white/30 sm:inline">
+                            ·
+                        </span>
                         <span className="relative hidden size-3.5 shrink-0 items-center justify-center sm:inline-flex">
                             <img
                                 alt=""

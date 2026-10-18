@@ -1,9 +1,9 @@
 # ryan
 
-Personal site — Next.js 14 (App Router), React 18, Tailwind. Seven pages: home,
-music, projects, skills, biolinks, guestbook and contact, with live Discord
-presence (Lanyard) and Last.fm listening data. Everything public is edited from
-the private admin at `/admin`.
+Personal site — Next.js 14 (App Router), React 18, Tailwind. Eight pages: home,
+music, projects, commissions, skills, biolinks, guestbook and contact, with live
+Discord presence (Lanyard) and Last.fm listening data. Everything public is
+edited from the private admin at `/admin`.
 
 ```bash
 bun install        # or npm install
@@ -25,6 +25,7 @@ page follows whatever the config says.
 | `/` | name, Discord handle/avatar, short bio, listening line, social pills | `site.name`, `site.socials`, Lanyard, `/api/nowplaying` |
 | `/music` | albums, tracks, favourite (with preview playback + progress), stats | Last.fm via `/api/top`, `/api/stats`, `/api/play` |
 | `/projects` | featured project card(s) with screenshots, then any extra projects | `projects.json` via `lib/projectsStore.ts` |
+| `/commissions` | status, crypto-only payment block with accepted coins, scope and process | `site.commission` |
 | `/skills` | grouped skill pills with brand icons | `site.skills` |
 | `/biolinks` | two external profile links (`wsp.baby/yo`, `injuri.ng/no`) | `site.biolinks` |
 | `/contact` | Discord hero card + one card per contact | `site.socials`, `site.contacts` |
@@ -130,8 +131,9 @@ with nine tabs: **overview** (views, visitors, counts, quick actions),
 **socials** (discord id + handle, github, last.fm, telegram, roblox),
 **links** (biolinks and contact cards, add/remove/reorder),
 **skills** (groups and pills), **nav** (label, href, icon preset, visibility,
-order), **commissions** (toggle, price, sponsor, preview), **guestbook**
-(approve / delete notes) and **projects** (the existing editor, embedded).
+order), **commissions** (toggle, price, accepted coins, sponsor, preview),
+**guestbook** (approve / delete notes) and **projects** (the existing editor,
+embedded).
 
 Saving is one draft: edits stay local until **save** (or ⌘S / ctrl+S), which
 `PUT`s the whole config. **discard** drops the draft, **reset** returns to the
@@ -152,7 +154,10 @@ calls `revalidatePath("/", "layout")` after a save).
 
 `app/admin-utilities.css` is a generated utility snapshot used only by the
 admin markup (the site's main utility sheet predates it); regenerate it if you
-add new utility classes to `components/admin/*`.
+add new utility classes to `components/admin/*`. Because it loads after the
+site sheet, its `.left-1\/2` used to win over the nav's desktop override and
+park the rail in the middle of the page — `.site-nav` in `app/nav.css` owns that
+placement now so the two sheets cannot fight over it.
 
 ```bash
 curl -s -c /tmp/cj -X POST localhost:3000/api/admin/login \
@@ -176,6 +181,19 @@ site and projects. `POST /api/guestbook` is origin-checked, body-capped at 8 KB,
 rate-limited to 3 notes per 10 minutes per IP (12/day), and silently accepts
 and drops submissions that fill the hidden `website` honeypot. Entries render
 as plain React text (escaped) and optional links are `nofollow`.
+
+## Commissions — crypto only
+
+`/commissions` is the offer page: current availability, the starting price from
+`site.commission.price`, a payment block that says **crypto only** in as many
+ways as is tasteful, the accepted coins (`site.commission.coins`, comma
+separated, default `BTC, ETH, USDT, SOL, LTC`), what gets built, a three-step
+process and a Discord CTA. The toggle in `/admin` → commissions controls the
+"open right now" / "closed right now" line, the bar above `/projects` and the
+pill on home; the page itself is always reachable.
+
+The same crypto-only line is in the commission modal (`components/
+CommissionModal.tsx`), which links here for the full terms.
 
 ## Preview audio in sync
 
@@ -375,6 +393,10 @@ runtime, so utility classes alone would not animate anything):
   sway at three speeds, `.bb-art` 54s breathe zoom, `.bb-petal` falling petals
   (26 on desktop, 14 under 640px), `.bb-glow` drifting light, and pointer
   parallax on `.bb-parallax` via `--px`/`--py` (skipped on coarse pointers)
+- album backdrop — `components/CoverBackdrop.tsx` blurs the now-playing cover
+  into two crossfading full-screen layers under the content (`.cover-*` in
+  `app/cover.css`); the image goes through `/api/img` because Last.fm's CDN
+  blocks cross-origin reads, and nothing renders when there is no track
 
 Animations use `animation-fill-mode: backwards` so no transform lingers to
 become a containing block for `position: fixed` children, and everything is

@@ -1,0 +1,59 @@
+/* ------------------------------------------------------------------
+   album-cover backdrop — the now-playing artwork as the page background
+------------------------------------------------------------------- */
+
+.cover-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.cover-layer {
+    position: absolute;
+    inset: -12%;
+    background-position: center;
+    background-size: cover;
+    filter: blur(38px) saturate(1.28) brightness(0.92);
+    transform: scale(1.12);
+    opacity: 0.9;
+    will-change: opacity;
+}
+
+.cover-layer.is-new {
+    animation: cover-in 1400ms ease both;
+}
+
+@keyframes cover-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.9;
+    }
+}
+
+.cover-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(
+            118% 88% at 50% 42%,
+            rgba(6, 6, 8, 0.16) 0%,
+            rgba(6, 6, 8, 0.3) 55%,
+            rgba(6, 6, 8, 0.58) 100%
+        ),
+        linear-gradient(
+            180deg,
+            rgba(4, 4, 6, 0.32) 0%,
+            rgba(4, 4, 6, 0.04) 34%,
+            rgba(4, 4, 6, 0.4) 100%
+        );
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cover-layer.is-new {
+        animation: none;
+    }
+}

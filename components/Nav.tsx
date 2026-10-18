@@ -82,7 +82,7 @@ export default function Nav() {
                     ["--tip-border" as string]: tipBorder,
                 } as React.CSSProperties
             }
-            className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-xl border p-1 backdrop-blur-xl transition-[background,border-color,box-shadow] duration-700 ease-out sm:bottom-auto sm:left-4 sm:top-1/2 sm:-translate-y-1/2 sm:translate-x-0 sm:rounded-lg"
+            className="site-nav rounded-xl border p-1 backdrop-blur-xl transition-[background,border-color,box-shadow] duration-700 ease-out sm:rounded-lg"
         >
             <ul
                 ref={ulRef}

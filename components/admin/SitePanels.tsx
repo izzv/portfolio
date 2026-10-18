@@ -981,6 +981,14 @@ export function CommissionPanel({ draft, patch }: PanelProps) {
                         onChange={(price) => set({ price })}
                     />
                     <TextField
+                        label="accepted coins"
+                        value={c.coins}
+                        hint="comma separated · crypto only"
+                        className="sm:col-span-2"
+                        placeholder="BTC, ETH, USDT, SOL"
+                        onChange={(coins) => set({ coins })}
+                    />
+                    <TextField
                         label="sponsor"
                         value={c.sponsor}
                         placeholder="me"

@@ -1,0 +1,26 @@
+/* ------------------------------------------------------------------
+   primary nav placement.
+
+   It used to depend on `left-1/2` + `-translate-x-1/2` + `sm:left-4` etc.
+   The generated admin utility sheet (loaded after the site sheet) also
+   contains `.left-1\/2`, so the desktop override lost the cascade and the
+   rail sat in the middle of the content. These rules own the placement
+   instead of racing the utility sheets.
+------------------------------------------------------------------- */
+
+.site-nav {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    z-index: 50;
+    transform: translateX(-50%);
+}
+
+@media (min-width: 640px) {
+    .site-nav {
+        bottom: auto;
+        top: 50%;
+        left: 1rem;
+        transform: translateY(-50%);
+    }
+}

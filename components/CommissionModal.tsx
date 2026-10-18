@@ -96,6 +96,28 @@ export default function CommissionModal({
                                 price varies based on scope and complexity.
                             </p>
                         </div>
+
+                        <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.04] p-3">
+                            <h3 className="text-xs font-medium text-emerald-100/60">
+                                payment
+                            </h3>
+                            <p className="mt-2 text-sm text-white/85">
+                                <span className="font-medium text-emerald-100/95">
+                                    crypto only
+                                </span>{" "}
+                                <span className="text-white/40">—</span>{" "}
+                                <span className="text-white/65">
+                                    {site.commission.coins}
+                                </span>
+                            </p>
+                            <a
+                                href="/commissions"
+                                className="mt-2 inline-flex items-center gap-1 text-[11px] text-white/45 underline decoration-white/15 underline-offset-2 transition-colors hover:text-white/80"
+                            >
+                                full commission details
+                                <span aria-hidden="true">→</span>
+                            </a>
+                        </div>
                     </div>
 
                     <div className="mt-5">

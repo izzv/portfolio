@@ -85,14 +85,19 @@ export default function CommandPalette({
             }));
         // A saved nav from before /guestbook existed would otherwise hide the
         // page from the palette as well as the rail.
-        if (!pages.some((p) => p.hint === "/guestbook"))
-            pages.push({
-                id: "page:/guestbook",
-                group: "pages",
-                label: "Guestbook",
-                hint: "/guestbook",
-                run: () => go("/guestbook"),
-            });
+        for (const [href, label] of [
+            ["/guestbook", "Guestbook"],
+            ["/commissions", "Commissions"],
+        ] as const) {
+            if (!pages.some((p) => p.hint === href))
+                pages.push({
+                    id: `page:${href}`,
+                    group: "pages",
+                    label,
+                    hint: href,
+                    run: () => go(href),
+                });
+        }
 
         const projectEntries: Entry[] = projects.map((p) => ({
             id: `project:${p.id}`,

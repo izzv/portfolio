@@ -5,12 +5,16 @@ import "./globals.css";
 // utility sheet generated for the admin markup (see the file header)
 import "./admin-utilities.css";
 import "./admin.css";
+import "./cover.css";
 import "./player.css";
 import "./palette.css";
 import "./guestbook.css";
+import "./commissions.css";
+import "./nav.css";
 import ExperienceProvider from "@/components/ExperienceProvider";
 import PreviewProvider from "@/components/PreviewProvider";
 import BlossomBackground from "@/components/BlossomBackground";
+import CoverBackdrop from "@/components/CoverBackdrop";
 import CanvasBackdrop from "@/components/CanvasBackdrop";
 import DynamicIsland from "@/components/DynamicIsland";
 import Nav from "@/components/Nav";
@@ -46,6 +50,7 @@ export default async function RootLayout({
                     <ExperienceProvider>
                         <PreviewProvider>
                             <BlossomBackground />
+                            <CoverBackdrop />
                             <CanvasBackdrop />
                             <Nav />
                             <DynamicIsland />
