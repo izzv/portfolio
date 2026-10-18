@@ -214,6 +214,23 @@ Confirmed:
 - **Last.fm account** → `.env.local` (`LASTFM_USER`) plus `socials.lastfm`.
 - **Timezone** → `site.timezone` (used by `LocalTime`).
 
+## Background
+
+`components/BlossomBackground.tsx` renders a full-screen grayscale cherry-blossom
+scene (stormy sky top-right, dark limbs, layered white blossom masses) as inline
+SVG behind every route. It is drawn rather than shipped as a bitmap, so it stays
+sharp at any viewport size and the layered groups can move independently.
+
+- geometry is generated from a seeded PRNG (`mulberry32`) so server and client
+  markup match — no hydration mismatch
+- `filter: grayscale(1) brightness(0.92) contrast(1.12)` plus a radial scrim keep
+  white text readable over the bright blossom areas
+- `.bb-tint` reuses the album palette from `ExperienceProvider`, so the old
+  album-reactive backdrop still tints the scene via `mix-blend-mode: soft-light`
+
+To use a photograph instead, drop it in `public/media/` and swap the `<svg>` for
+an `<img>` — the petals, sway and parallax layers wrap it unchanged.
+
 ## Motion
 
 All page motion lives in `app/globals.css` (this project has no Tailwind
@@ -224,11 +241,17 @@ runtime, so utility classes alone would not animate anything):
 - `.anim-item` — staggered reveal, delay set per item inline
 - `.lift` — hover lift shared by project, contact, biolinks and home cards
 - `.anim-glow` — slow glow pulse available for status dots
+- background scene — `.bb-sway-far` / `.bb-sway-mid` / `.bb-sway-near` canopy
+  sway at three speeds, `.bb-art` 54s breathe zoom, `.bb-petal` falling petals
+  (26 on desktop, 14 under 640px), `.bb-glow` drifting light, and pointer
+  parallax on `.bb-parallax` via `--px`/`--py` (skipped on coarse pointers)
 
 Animations use `animation-fill-mode: backwards` so no transform lingers to
 become a containing block for `position: fixed` children, and everything is
 disabled under `prefers-reduced-motion: reduce` (verified in Chrome: reported
-`animationName` is `pageRise` normally and `none` with reduced motion).
+`animationName` is `pageRise` normally and `none` with reduced motion). The
+background scene is included: sway/breathe/glow stop and the petals are
+`display: none` under reduced motion, verified across all six routes.
 
 ## Deployment (Vercel)
 
