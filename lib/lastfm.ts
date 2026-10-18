@@ -1,5 +1,6 @@
 import { Spotify } from "spotify-lyrics-ts";
 import { observePlayback } from "./playClock";
+import { getCanvasUrl } from "./canvas";
 import {
     searchSpotifyTrack,
     getOwnerCurrentlyPlaying,
@@ -130,12 +131,21 @@ export type NowPlaying = {
     fetchedAt?: number;
     /** true when `progressMs` is inferred, not read from Spotify */
     estimated?: boolean;
+    /** looping Spotify Canvas video, when the track has one */
+    canvasUrl?: string;
 };
+
+async function withCanvas(np: NowPlaying): Promise<NowPlaying> {
+    if (!np.isPlaying || !np.spotifyId) return np;
+    const url = await getCanvasUrl(np.spotifyId);
+    if (url) np.canvasUrl = url;
+    return np;
+}
 
 export async function getNowPlaying(): Promise<NowPlaying> {
     const owner = await getOwnerCurrentlyPlaying();
     if (owner && owner.name) {
-        return {
+        return withCanvas({
             isPlaying: owner.isPlaying,
             name: owner.name,
             artist: owner.artist,
@@ -148,7 +158,7 @@ export async function getNowPlaying(): Promise<NowPlaying> {
             spotifyId: owner.id,
             fetchedAt: Date.now(),
             estimated: false,
-        };
+        });
     }
 
     const data = await call("user.getrecenttracks", { limit: 1 });
@@ -191,7 +201,7 @@ export async function getNowPlaying(): Promise<NowPlaying> {
         np.fetchedAt = est.at;
         np.estimated = true;
     }
-    return np;
+    return withCanvas(np);
 }
 
 export type TopItem = {

@@ -4,6 +4,7 @@ import "./fonts.css";
 import "./globals.css";
 import ExperienceProvider from "@/components/ExperienceProvider";
 import BlossomBackground from "@/components/BlossomBackground";
+import CanvasBackdrop from "@/components/CanvasBackdrop";
 import DynamicIsland from "@/components/DynamicIsland";
 import Nav from "@/components/Nav";
 import PageTransition from "@/components/PageTransition";
@@ -27,6 +28,7 @@ export default function RootLayout({
             <body className="antialiased bg-black text-white [color-scheme:dark]">
                 <ExperienceProvider>
                     <BlossomBackground />
+                    <CanvasBackdrop />
                     <Nav />
                     <DynamicIsland />
                     <PageTransition>{children}</PageTransition>

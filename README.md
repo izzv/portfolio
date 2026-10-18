@@ -231,6 +231,27 @@ sharp at any viewport size and the layered groups can move independently.
 To use a photograph instead, drop it in `public/media/` and swap the `<svg>` for
 an `<img>` — the petals, sway and parallax layers wrap it unchanged.
 
+### Spotify Canvas backdrop
+
+When the track that is playing has a Spotify Canvas, its looping video replaces
+the blossom scene (`components/CanvasBackdrop.tsx`, `lib/canvas.ts`). With
+nothing playing — or a track without a Canvas — the scene stays as it is.
+
+- `getCanvasUrl(trackId)` reads the community endpoint (`spotify-canva`), which
+  parses Spotify's internal protobuf response, and only accepts `*.scdn.co`
+  URLs. Hits are cached for 6h, misses for 10min, in-flight lookups are shared,
+  and a 30/min burst cap stops the public `/api/canvas` route from being used to
+  enumerate ids.
+- The video is muted, looped, `object-fit: cover`, faded in over 900ms with a
+  slow 14s zoom, paused while the tab is hidden, and hidden entirely under
+  `prefers-reduced-motion`. Playback failures (autoplay blocked, 404) leave the
+  normal background in place.
+- **A track id is required, so this needs Spotify credentials.**
+  `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` are enough (they make
+  `searchSpotifyTrack` return ids); `SPOTIFY_REFRESH_TOKEN` additionally gives
+  exact playback position. Without either, `now.spotifyId` is null and no canvas
+  is ever requested.
+
 ## Lyrics
 
 `/api/lyrics` returns `{ lines, synced }`, where `synced` is true only when the
@@ -240,7 +261,7 @@ cached alongside the lines so a second visit doesn't re-fetch.
 `components/Header.tsx` turns that into playback-following lyrics:
 
 - the position comes from `progressMs` + `fetchedAt` in `/api/nowplaying`, and is
-  re-anchored on every 5s poll, so it cannot drift
+  re-anchored on every poll (2s visible, 15s backgrounded), so it cannot drift
 - a `requestAnimationFrame` loop picks the active line and sets the progress
   hairline's `scaleX`, so transitions land on the exact timestamp
 - unsynced (plain) lyrics have no timestamps, so they keep the old 3.2s cycle,

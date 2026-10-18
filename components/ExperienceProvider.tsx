@@ -16,6 +16,7 @@ export type Now = {
     spotifyId?: string;
     progressMs?: number;
     fetchedAt?: number;
+    canvasUrl?: string;
 };
 
 export type Lanyard = {
@@ -146,24 +147,49 @@ export default function ExperienceProvider({
                             ...prev,
                             progressMs: n.progressMs,
                             fetchedAt: n.fetchedAt ?? prev.fetchedAt,
+                            // keep a canvas that already arrived if this poll
+                            // raced the track lookup
+                            canvasUrl: n.canvasUrl ?? prev.canvasUrl,
                         };
                     }
                     return n;
                 });
             } catch {}
         };
-        load();
-        const id = setInterval(load, 5000);
-        const onVisible = () => {
-            if (document.visibilityState === "visible") load();
+        // 2s while the tab is visible so a track change lands quickly, 15s
+        // when it is backgrounded so a stale tab doesn't poll for nothing.
+        const visibleDelay = 2000;
+        const hiddenDelay = 15000;
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const schedule = (delay: number) => {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(async () => {
+                await load();
+                if (!on) return;
+                schedule(
+                    document.visibilityState === "visible"
+                        ? visibleDelay
+                        : hiddenDelay,
+                );
+            }, delay);
         };
+        const onVisible = () => {
+            if (document.visibilityState === "visible") {
+                load();
+                schedule(visibleDelay);
+            } else {
+                schedule(hiddenDelay);
+            }
+        };
+        load();
+        schedule(visibleDelay);
         document.addEventListener("visibilitychange", onVisible);
-        window.addEventListener("focus", load);
+        window.addEventListener("focus", onVisible);
         return () => {
             on = false;
-            clearInterval(id);
+            if (timer) clearTimeout(timer);
             document.removeEventListener("visibilitychange", onVisible);
-            window.removeEventListener("focus", load);
+            window.removeEventListener("focus", onVisible);
         };
     }, []);
 
