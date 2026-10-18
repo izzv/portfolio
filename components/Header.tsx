@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useExperience, type RGB } from "./ExperienceProvider";
+import { usePreview, trackKey } from "./PreviewProvider";
 import DiscordAvatar from "./DiscordAvatar";
 import { useSite } from "./SiteProvider";
 
@@ -17,6 +18,7 @@ function bright([r, g, b]: RGB): string {
 
 export default function Header() {
     const { now, lanyard, discordId, primary, secondary } = useExperience();
+    const preview = usePreview();
     const site = useSite();
     const [lines, setLines] = useState<Line[]>([]);
     const [synced, setSynced] = useState(false);
@@ -26,7 +28,11 @@ export default function Header() {
     // Re-anchored on every `/api/nowplaying` poll so it cannot drift.
     const anchor = useRef<{ pos: number; at: number; key: string } | null>(null);
     const fill = useRef<HTMLSpanElement>(null);
-    const trackKey = now?.name ? `${now.artist}\u0000${now.name}` : "";
+    const key = now?.name ? trackKey(now) : "";
+    const previewRef = useRef(preview);
+    previewRef.current = preview;
+    // The preview is only a clock for the lyrics when it is this exact track.
+    const previewOnAir = !!now?.name && preview.track?.key === key;
     const handle = lanyard?.username
         ? `@${lanyard.username}`
         : site.socials.discordHandle
@@ -42,6 +48,31 @@ export default function Header() {
         now?.spotifyUrl ||
         (now?.name ? spotifySearch(`${now.name} ${now.artist}`) : "#");
     const artistUrl = now?.artist ? spotifySearch(now.artist) : "#";
+
+    const previewBusy = preview.status === "loading";
+    const previewHere = previewOnAir && preview.playing;
+    const previewBlocked = preview.status === "error";
+    // Any clip counts for the button state: audio started on /music keeps
+    // playing here, so the header must be able to pause it even when it is not
+    // the track this header is about.
+    const anyPreview = preview.playing;
+
+    function playPreview() {
+        if (!now?.name || preview.status === "loading") return;
+        if (preview.playing) {
+            preview.toggle();
+            return;
+        }
+        if (preview.track?.key === key) {
+            preview.toggle();
+            return;
+        }
+        void preview.play({
+            name: now.name,
+            artist: now.artist,
+            image: now.image,
+        });
+    }
 
     const gradStyle = {
         backgroundImage: `linear-gradient(90deg, ${bright(primary)}, ${bright(secondary)})`,
@@ -89,9 +120,9 @@ export default function Header() {
         anchor.current = {
             pos: now.progressMs / 1000,
             at: now.fetchedAt ?? Date.now(),
-            key: trackKey,
+            key,
         };
-    }, [trackKey, now?.name, now?.progressMs, now?.fetchedAt]);
+    }, [key, now?.name, now?.progressMs, now?.fetchedAt]);
 
     // Synced mode: drive the active line and the progress hairline from the
     // clock on every frame, so line changes land on the syllable instead of
@@ -100,10 +131,27 @@ export default function Header() {
         if (!lines.length || !synced) return;
         let raf = 0;
         const tick = () => {
+            const p = previewRef.current;
             const a = anchor.current;
-            if (a) {
-                const live = now?.isPlaying === false ? 0 : (Date.now() - a.at) / 1000;
-                const pos = a.pos + live;
+            const onAir =
+                p.playing &&
+                !!p.track &&
+                !!now?.name &&
+                p.track.key === trackKey(now);
+            // While a clip is playing it *is* the playback: its own position
+            // inside the song keeps the lyrics with what you can hear, even
+            // when live playback is paused elsewhere or the clip was started
+            // mid-track.
+            const audioPos = onAir
+                ? (p.songMs + Math.max(0, Date.now() - p.positionAt)) / 1000
+                : null;
+            if (audioPos != null || a) {
+                const pos =
+                    audioPos ??
+                    a!.pos +
+                        (now?.isPlaying === false
+                            ? 0
+                            : (Date.now() - a!.at) / 1000);
                 let i = -1;
                 for (let k = 0; k < lines.length; k++) {
                     if (lines[k].t <= pos) i = k;
@@ -131,7 +179,15 @@ export default function Header() {
         };
         raf = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(raf);
-    }, [lines, synced, now?.isPlaying, now?.progressMs, now?.fetchedAt]);
+    }, [
+        lines,
+        synced,
+        now?.isPlaying,
+        now?.progressMs,
+        now?.fetchedAt,
+        preview.playing,
+        preview.track?.key,
+    ]);
 
     // Unsynced lyrics have no real timestamps, so they keep a gentle cycle.
     useEffect(() => {
@@ -173,7 +229,7 @@ export default function Header() {
 
             {now?.name && (
                 <div className="absolute right-0 bottom-0 flex w-[60%] flex-col items-end gap-1.5">
-                    {lines.length > 0 && now.isPlaying && (
+                    {lines.length > 0 && (now.isPlaying || previewHere) && (
                         <div className="w-full overflow-hidden text-right">
                             <div key={idx} className="lyric-shift">
                                 <div className="h-4 truncate text-[11px] leading-4 text-white/25">
@@ -210,6 +266,42 @@ export default function Header() {
                             <span className="text-white/45"> · </span>
                             <span className="text-white/70">{now.artist}</span>
                         </span>
+                        <button
+                            type="button"
+                            onClick={playPreview}
+                            aria-label={
+                                anyPreview
+                                    ? "Pause the preview"
+                                    : previewBusy
+                                      ? "Loading the preview"
+                                      : "Play a preview in sync with this track"
+                            }
+                            title={
+                                previewBlocked
+                                    ? "no preview available for this track"
+                                    : anyPreview
+                                      ? "pause the preview"
+                                      : "play 30s, in sync with the song"
+                            }
+                            data-state={
+                                previewBusy
+                                    ? "loading"
+                                    : anyPreview
+                                      ? "playing"
+                                      : "idle"
+                            }
+                            className="pp-btn shrink-0"
+                        >
+                            {anyPreview ? (
+                                <svg viewBox="0 0 320 512" aria-hidden="true">
+                                    <path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z" />
+                                </svg>
+                            ) : (
+                                <svg viewBox="0 0 384 512" aria-hidden="true">
+                                    <path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.3-23-41L73 39z" />
+                                </svg>
+                            )}
+                        </button>
                         {now.image && (
                             <img
                                 src={now.image}
@@ -227,6 +319,11 @@ export default function Header() {
                                         "inset 0 0 0 1px rgba(255,255,255,0.15), 0 2px 6px -2px rgba(0,0,0,0.7)",
                                 }}
                             />
+                        )}
+                        {previewHere && (
+                            <span className="pp-live shrink-0" aria-hidden="true">
+                                sync
+                            </span>
                         )}
                         <span className="truncate">
                             {now.isPlaying ? "Listening to " : "Last played "}

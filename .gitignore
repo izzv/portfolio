@@ -11,3 +11,5 @@ viewscount.enc
 projects.json.*.tmp
 site.json
 site.json.*.tmp
+guestbook.json
+guestbook.json.*.tmp

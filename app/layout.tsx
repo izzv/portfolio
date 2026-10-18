@@ -5,7 +5,11 @@ import "./globals.css";
 // utility sheet generated for the admin markup (see the file header)
 import "./admin-utilities.css";
 import "./admin.css";
+import "./player.css";
+import "./palette.css";
+import "./guestbook.css";
 import ExperienceProvider from "@/components/ExperienceProvider";
+import PreviewProvider from "@/components/PreviewProvider";
 import BlossomBackground from "@/components/BlossomBackground";
 import CanvasBackdrop from "@/components/CanvasBackdrop";
 import DynamicIsland from "@/components/DynamicIsland";
@@ -14,7 +18,9 @@ import PageTransition from "@/components/PageTransition";
 import Views from "@/components/Views";
 import ColorOverlay from "@/components/ColorOverlay";
 import SiteProvider from "@/components/SiteProvider";
+import CommandPalette from "@/components/CommandPalette";
 import { getSite } from "@/lib/siteStore";
+import { getProjects } from "@/lib/projectsStore";
 
 export const dynamic = "force-dynamic";
 
@@ -32,19 +38,22 @@ export default async function RootLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const site = await getSite();
+    const [site, projects] = await Promise.all([getSite(), getProjects()]);
     return (
         <html lang="en" className="dark font-sans hero_YXskvN9J">
             <body className="antialiased bg-black text-white [color-scheme:dark]">
                 <SiteProvider config={site}>
                     <ExperienceProvider>
-                        <BlossomBackground />
-                        <CanvasBackdrop />
-                        <Nav />
-                        <DynamicIsland />
-                        <PageTransition>{children}</PageTransition>
-                        <Views />
-                        <ColorOverlay />
+                        <PreviewProvider>
+                            <BlossomBackground />
+                            <CanvasBackdrop />
+                            <Nav />
+                            <DynamicIsland />
+                            <PageTransition>{children}</PageTransition>
+                            <Views />
+                            <ColorOverlay />
+                            <CommandPalette projects={projects} />
+                        </PreviewProvider>
                     </ExperienceProvider>
                 </SiteProvider>
             </body>

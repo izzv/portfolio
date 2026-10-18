@@ -3,6 +3,7 @@ import { isAuthed, passwordConfigured } from "@/lib/adminAuth";
 import { getSite, siteStorageMode, siteStorageWarning } from "@/lib/siteStore";
 import { getProjects } from "@/lib/projectsStore";
 import { getViews } from "@/lib/viewsStore";
+import { getGuestbook } from "@/lib/guestbookStore";
 import AdminLogin from "@/components/admin/AdminLogin";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -24,12 +25,17 @@ export default async function AdminPage({
 
     const config = await getSite();
     const storage = siteStorageMode();
-    const [projects, views] = await Promise.all([getProjects(), getViews()]);
+    const [projects, views, guestbook] = await Promise.all([
+        getProjects(),
+        getViews(),
+        getGuestbook(),
+    ]);
 
     return (
         <AdminShell
             initial={config}
             projects={projects}
+            guestbook={guestbook}
             stats={{
                 views: views.total,
                 uniqueDevices: views.uniqueDevices,

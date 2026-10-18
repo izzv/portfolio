@@ -1,9 +1,9 @@
 # ryan
 
-Personal site — Next.js 14 (App Router), React 18, Tailwind. Six pages: home,
-music, projects, skills, biolinks and contact, with live Discord presence
-(Lanyard) and Last.fm listening data. Projects are edited from a private admin
-page at `/admin/projects`.
+Personal site — Next.js 14 (App Router), React 18, Tailwind. Seven pages: home,
+music, projects, skills, biolinks, guestbook and contact, with live Discord
+presence (Lanyard) and Last.fm listening data. Everything public is edited from
+the private admin at `/admin`.
 
 ```bash
 bun install        # or npm install
@@ -23,12 +23,13 @@ page follows whatever the config says.
 | Route | Renders | Data |
 | --- | --- | --- |
 | `/` | name, Discord handle/avatar, short bio, listening line, social pills | `site.name`, `site.socials`, Lanyard, `/api/nowplaying` |
-| `/music` | albums, tracks, favourite (with preview playback), stats | Last.fm via `/api/top`, `/api/stats`, `/api/play` |
+| `/music` | albums, tracks, favourite (with preview playback + progress), stats | Last.fm via `/api/top`, `/api/stats`, `/api/play` |
 | `/projects` | featured project card(s) with screenshots, then any extra projects | `projects.json` via `lib/projectsStore.ts` |
 | `/skills` | grouped skill pills with brand icons | `site.skills` |
 | `/biolinks` | two external profile links (`wsp.baby/yo`, `injuri.ng/no`) | `site.biolinks` |
 | `/contact` | Discord hero card + one card per contact | `site.socials`, `site.contacts` |
-| `/admin` | password-gated site editor: profile, socials, links, skills, nav, commissions, projects, dashboard | `site.json` / `projects.json` |
+| `/guestbook` | open form plus approved notes | `guestbook.json` via `/api/guestbook` |
+| `/admin` | password-gated site editor: profile, socials, links, skills, nav, commissions, guestbook, projects, dashboard | `site.json` / `guestbook.json` / `projects.json` |
 
 Each page still has its own `<title>` (`music — ryan`, `projects — ryan`, …) from
 `site.name`; the root layout only supplies the bare name.
@@ -124,13 +125,13 @@ when nothing non-featured exists.
 ## Site editor — `/admin`
 
 The whole site is data, not source. `/admin` is a password-gated control room
-with eight tabs: **overview** (views, visitors, counts, quick actions),
+with nine tabs: **overview** (views, visitors, counts, quick actions),
 **profile** (name, age, greeting, role, tagline, timezone, live hero preview),
 **socials** (discord id + handle, github, last.fm, telegram, roblox),
 **links** (biolinks and contact cards, add/remove/reorder),
 **skills** (groups and pills), **nav** (label, href, icon preset, visibility,
-order), **commissions** (toggle, price, sponsor, preview) and **projects**
-(the existing editor, embedded).
+order), **commissions** (toggle, price, sponsor, preview), **guestbook**
+(approve / delete notes) and **projects** (the existing editor, embedded).
 
 Saving is one draft: edits stay local until **save** (or ⌘S / ctrl+S), which
 `PUT`s the whole config. **discard** drops the draft, **reset** returns to the
@@ -161,6 +162,45 @@ curl -s -b /tmp/cj localhost:3000/api/admin/site
 
 `GET`/`PUT /api/admin/site` returns `401` without a session, `403` for a write
 from another origin, `413` above 256 KB.
+
+## Guestbook
+
+`/guestbook` is a public wall: name, message and an optional link, no account.
+Notes land with `approved: false` and are invisible until they are approved in
+`/admin` → guestbook, which is the only moderation step. `PUT
+/api/admin/guestbook` replaces the list; deleting a note is a `PUT` without it.
+
+`lib/guestbook.ts` caps name/message (`32`/`500`), strips everything else and
+drops empty rows; `lib/guestbookStore.ts` is the same blob/file/temp store as
+site and projects. `POST /api/guestbook` is origin-checked, body-capped at 8 KB,
+rate-limited to 3 notes per 10 minutes per IP (12/day), and silently accepts
+and drops submissions that fill the hidden `website` honeypot. Entries render
+as plain React text (escaped) and optional links are `nofollow`.
+
+## Preview audio in sync
+
+Music tabs used to play a clip from 0:00 and pretend. Now every page shares one
+`<audio>` element (`components/PreviewProvider.tsx`):
+
+- `GET /api/play` resolves the best-matching 30s store preview (Deezer first,
+then Spotify, then iTunes — with a title/artist score so a cover cannot win)
+and reports `offsetMs`, where the clip starts inside the song.
+- Pressing play on the header, or a track on `/music`, seeks the clip to the
+live playback position (when the track is the one playing and that position is
+inside the clip), so the audio you hear is the part the lyrics are on. The
+header's word-by-word clock uses the audio position while a clip plays, not the
+estimated Last.fm clock; the live track changing stops the clip.
+- The player survives client-side navigation, so a clip started on `/music`
+keeps playing on the home page and the lyrics stay with it. `/music` shows a
+real progress bar, elapsed/duration and whether the clip is matched to live
+playback.
+
+## Command palette
+
+`⌘K` / `ctrl+K` (or `/` outside a field, or the `⌘K` pill on home) opens a
+palette over pages, projects, socials and three actions (copy Discord handle,
+open `/admin`, scroll to top). `↑`/`↓` move, `↵` opens, `esc` closes.
+Arrow/enter work without touching the mouse, and the list is fuzzy-filtered.
 
 ## How it was built
 
@@ -384,7 +424,7 @@ running in `temporary` mode, and a failed blob write returns the real reason
 `LASTFM_USER`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`,
 `SPOTIFY_REFRESH_TOKEN`, `SP_DC_COOKIE`, plus `ADMIN_PASSWORD` and
 `ADMIN_SECRET` for `/admin`, and optionally
-`BLOB_READ_WRITE_TOKEN` for durable project saves. Both admin values are required — without
+`BLOB_READ_WRITE_TOKEN` for durable site, guestbook and project saves. Both admin values are required — without
 `ADMIN_PASSWORD` the login page explains the missing config instead of accepting
 a blank password, and `ADMIN_SECRET` (falls back to `VIEWS_SECRET`) is what
 signs the session cookie.
@@ -405,7 +445,15 @@ preview, so the favourite tab plays).
   Without them, `lib/playClock.ts` anchors on the first poll that saw the track
   playing and counts from there: a track that started before the server first
   saw it (or before a deploy) reads late, and seeks are invisible.
-- Site and project data are JSON files, so they need a writable filesystem that
-  persists between requests (a normal VPS/container) or a Vercel Blob token. On
-  a read-only host without a token the admin falls back to the OS temp dir and
-  says so; set `BLOB_READ_WRITE_TOKEN` to make saves durable.
+- Site, guestbook and project data are JSON files, so they need a writable
+  filesystem that persists between requests (a normal VPS/container) or a Vercel
+  Blob token. On a read-only host without a token the admin falls back to the OS
+  temp dir and says so; set `BLOB_READ_WRITE_TOKEN` to make saves durable.
+- Preview sync assumes the 30s clip starts at 0:30, which is the label default
+  and what the three stores return in practice. The APIs do not publish the
+  offset, so a track whose label picked another window will be off by exactly
+  that difference. Without Spotify owner credentials the live position used for
+  the first seek is the estimate from `lib/playClock.ts`.
+- `/guestbook` in the nav comes from the config. A `site.json` saved before this
+  route existed keeps its old nav; add the item in `/admin` → nav (it is still
+  reachable from the home link, the palette and the direct URL).

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useExperience, type RGB } from "./ExperienceProvider";
+import { clock, trackKey, usePreview } from "./PreviewProvider";
 
 function tint([r, g, b]: RGB, base: number, mix: number, alpha: number): string {
   const c = (v: number) => Math.min(255, Math.round(base + v * mix));
@@ -52,8 +53,7 @@ export default function MusicTabs() {
   const [artists, setArtists] = useState<Item[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [selIdx, setSelIdx] = useState<number | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const preview = usePreview();
 
   const listRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -84,7 +84,6 @@ export default function MusicTabs() {
   }, [tab]);
 
   useEffect(() => {
-    audioRef.current = new Audio();
     (async () => {
       const [a, t, ar, s] = await Promise.all([
         fetch("/api/top?type=albums&limit=20").then((r) => r.json()),
@@ -97,65 +96,46 @@ export default function MusicTabs() {
       setArtists(ar.items || []);
       setStats(s);
     })();
-    return () => {
-      audioRef.current?.pause();
-    };
   }, []);
 
-  async function playIndex(i: number) {
-    const list = tracks.slice(0, 15);
-    const it = list[i];
-    const audio = audioRef.current;
-    if (!it || !audio) return;
+  const selected = selIdx != null ? favList[selIdx] : null;
+  const selectedKey = selected ? trackKey(selected) : "";
+  const previewForSelection = !!selected && preview.track?.key === selectedKey;
+  const isPlaying = previewForSelection && preview.playing;
+
+  function playIndex(i: number) {
+    const it = favList[i];
+    if (!it) return;
     setSelIdx(i);
-    try {
-      const d = await (
-        await fetch(`/api/play?artist=${encodeURIComponent(it.artist)}&track=${encodeURIComponent(it.name)}`)
-      ).json();
-      if (d.audio) {
-        audio.src = d.audio;
-        await audio.play();
-        setIsPlaying(true);
-      } else {
-        setIsPlaying(false);
-      }
-    } catch {
-      setIsPlaying(false);
-    }
+    void preview.play(
+      { name: it.name, artist: it.artist, image: it.image },
+      { onEnded: () => step(1) },
+    );
   }
 
   function togglePlay() {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (selIdx == null) {
+    if (!selected) {
       if (favList.length) playIndex(0);
       return;
     }
-    if (audio.paused) {
-      audio.play().then(() => setIsPlaying(true)).catch(() => {});
-    } else {
-      audio.pause();
-      setIsPlaying(false);
-    }
+    if (previewForSelection) preview.toggle();
+    else playIndex(selIdx ?? 0);
   }
 
   function step(delta: number) {
-    const len = tracks.slice(0, 15).length;
+    const len = favList.length;
     if (!len) return;
     const base = selIdx == null ? 0 : selIdx;
     playIndex((base + delta + len) % len);
   }
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onEnd = () => step(1);
-    audio.onended = onEnd;
-    return () => {
-      if (audio) audio.onended = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tracks, selIdx]);
+  const progress = {
+    positionMs: previewForSelection ? preview.positionMs : 0,
+    durationMs: preview.durationMs || 30_000,
+    aligned: previewForSelection && preview.aligned,
+    loading: previewForSelection && preview.status === "loading",
+    error: previewForSelection ? preview.error : null
+  };
 
   return (
     <div data-slot="tabs" className="flex flex-col gap-2 w-full">
@@ -216,6 +196,7 @@ export default function MusicTabs() {
             onToggle={togglePlay}
             onPrev={() => step(-1)}
             onNext={() => step(1)}
+            progress={progress}
           />
         )}
         {tab === "stats" && <Stats albums={albums} tracks={tracks} artists={artists} stats={stats} />}
@@ -405,7 +386,8 @@ function Favourite({
   onSelect,
   onToggle,
   onPrev,
-  onNext
+  onNext,
+  progress
 }: {
   items: Item[];
   selIdx: number | null;
@@ -414,8 +396,19 @@ function Favourite({
   onToggle: () => void;
   onPrev: () => void;
   onNext: () => void;
+  progress: {
+    positionMs: number;
+    durationMs: number;
+    aligned: boolean;
+    loading: boolean;
+    error: string | null;
+  };
 }) {
   const sel = selIdx != null ? items[selIdx] : null;
+  const fraction = Math.min(
+    1,
+    Math.max(0, progress.positionMs / Math.max(1, progress.durationMs))
+  );
   return (
     <div className="w-full space-y-4">
       {sel ? (
@@ -449,6 +442,35 @@ function Favourite({
               <Ctrl onClick={onPrev} aria="Previous track" icon={ICON.back} />
               <Ctrl onClick={onToggle} aria={isPlaying ? "Pause" : "Play"} icon={isPlaying ? ICON.pause : ICON.play} primary />
               <Ctrl onClick={onNext} aria="Next track" icon={ICON.fwd} />
+            </div>
+          </div>
+          <div className="relative z-10 px-3 pb-2.5">
+            <div className="mu-progress">
+              <div className="mu-bar" role="presentation">
+                <span
+                  className="mu-fill"
+                  style={{ transform: `scaleX(${fraction.toFixed(4)})` }}
+                />
+              </div>
+              <div className="mu-meta">
+                <span>
+                  {clock(progress.positionMs)} / {clock(progress.durationMs)}
+                </span>
+                <span className="mu-note">
+                  {progress.loading ? (
+                    "loading preview…"
+                  ) : progress.error ? (
+                    <span className="mu-err">{progress.error}</span>
+                  ) : progress.aligned ? (
+                    <>
+                      <span className="mu-dot" aria-hidden="true" />
+                      matched to live playback
+                    </>
+                  ) : (
+                    "30s preview"
+                  )}
+                </span>
+              </div>
             </div>
           </div>
         </div>

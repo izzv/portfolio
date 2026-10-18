@@ -1,0 +1,306 @@
+/* ------------------------------------------------------------------
+   guestbook — form + entry wall, imported once from the root layout
+------------------------------------------------------------------- */
+
+.gb-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    width: 100%;
+}
+
+.gb-form {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 30px 60px -40px rgba(0, 0, 0, 0.9);
+}
+
+.gb-form::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 12%;
+    right: 12%;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.22),
+        transparent
+    );
+}
+
+.gb-form-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 2px;
+}
+
+.gb-form-head h2 {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.gb-form-head span {
+    color: rgba(255, 255, 255, 0.32);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.gb-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.gb-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.gb-field > span {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.gb-field em {
+    color: rgba(255, 255, 255, 0.24);
+    font-size: 9px;
+    font-style: normal;
+    letter-spacing: 0.04em;
+    text-transform: none;
+}
+
+.gb-field input,
+.gb-field textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: #fff;
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    resize: vertical;
+    transition:
+        border-color 180ms ease,
+        background 180ms ease,
+        box-shadow 180ms ease;
+}
+
+.gb-field input::placeholder,
+.gb-field textarea::placeholder {
+    color: rgba(255, 255, 255, 0.24);
+}
+
+.gb-field input:focus,
+.gb-field textarea:focus {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+}
+
+.gb-trap {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.gb-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 2px;
+}
+
+.gb-note {
+    max-width: 70%;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.gb-submit {
+    flex: none;
+    padding: 7px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+        background 180ms ease,
+        transform 150ms ease,
+        opacity 180ms ease;
+}
+
+.gb-submit:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.gb-submit:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.gb-submit:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.gb-msg {
+    margin-top: -2px;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.gb-msg-bad {
+    color: rgba(255, 160, 160, 0.9);
+}
+
+.gb-msg-good {
+    color: rgba(170, 255, 205, 0.85);
+}
+
+.gb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.gb-entry {
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.018);
+    transition:
+        border-color 260ms ease,
+        background 260ms ease,
+        transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gb-entry:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.035);
+    transform: translateY(-1px);
+}
+
+.gb-entry header {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.gb-avatar {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    flex: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.gb-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+}
+
+.gb-name {
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+a.gb-name:hover {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.gb-meta time {
+    color: rgba(255, 255, 255, 0.26);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+}
+
+.gb-entry p {
+    margin-top: 7px;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.gb-empty {
+    padding: 26px 0;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 12px;
+    text-align: center;
+}
+
+@media (max-width: 520px) {
+    .gb-row {
+        grid-template-columns: 1fr;
+    }
+
+    .gb-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .gb-note {
+        max-width: none;
+    }
+
+    .gb-submit {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gb-entry,
+    .gb-entry:hover {
+        transform: none;
+        transition: none;
+    }
+}

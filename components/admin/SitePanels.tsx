@@ -173,6 +173,7 @@ export function OverviewPanel({
                         ["skills", "sections and pills"],
                         ["nav", "order, labels, icons"],
                         ["commission", "status, price, sponsor"],
+                        ["guestbook", "notes and moderation"],
                     ].map(([id, hint]) => (
                         <button
                             key={id}

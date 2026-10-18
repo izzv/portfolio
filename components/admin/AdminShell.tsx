@@ -9,6 +9,8 @@ import {
 } from "@/lib/siteConfig";
 import type { Project } from "@/lib/projects";
 import ProjectsAdmin from "./ProjectsAdmin";
+import GuestbookPanel from "./GuestbookPanel";
+import type { GuestEntry } from "@/lib/guestbook";
 import {
     CommissionPanel,
     LinksPanel,
@@ -28,6 +30,7 @@ const TABS = [
     { id: "skills", label: "skills" },
     { id: "nav", label: "nav" },
     { id: "commission", label: "commissions" },
+    { id: "guestbook", label: "guestbook" },
     { id: "projects", label: "projects" },
 ] as const;
 
@@ -40,6 +43,7 @@ type Toast = { id: number; text: string; tone: "good" | "bad" };
 export default function AdminShell({
     initial,
     projects,
+    guestbook,
     stats,
     storage,
     warning,
@@ -47,6 +51,7 @@ export default function AdminShell({
 }: {
     initial: SiteConfig;
     projects: Project[];
+    guestbook: GuestEntry[];
     stats: Stats;
     storage: string;
     warning: string | null;
@@ -335,6 +340,9 @@ export default function AdminShell({
                     </div>
                     <div className={tab === "commission" ? "adm-panel" : "hidden"}>
                         <CommissionPanel draft={draft} patch={patch} />
+                    </div>
+                    <div className={tab === "guestbook" ? "adm-panel" : "hidden"}>
+                        <GuestbookPanel initial={guestbook} />
                     </div>
                     <div className={tab === "projects" ? "adm-panel" : "hidden"}>
                         <div className="flex flex-col gap-4">

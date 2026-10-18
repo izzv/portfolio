@@ -92,6 +92,19 @@ export default function Pills() {
                 <span className="hidden sm:inline">Roblox</span>
             </a>
 
+            <button
+                type="button"
+                onClick={() =>
+                    window.dispatchEvent(new Event("open-command-palette"))
+                }
+                aria-label="Open the command palette"
+                title="search the site (⌘K)"
+                className={`${PLAIN_PILL} ml-auto`}
+            >
+                <span className="text-white/60">⌘K</span>
+                <span className="hidden text-white/50 sm:inline">search</span>
+            </button>
+
             {site.commission.enabled && (
             <button className={PLAIN_PILL}>
                 <span className="relative inline-flex size-1.5 shrink-0 items-center justify-center">

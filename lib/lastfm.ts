@@ -311,14 +311,116 @@ export type Preview = {
     image?: string;
     name?: string;
     artist?: string;
-    source?: string;
+    source?: "deezer" | "itunes" | "spotify";
+    /**
+     * Where the 30s clip begins inside the song, in ms.
+     *
+     * The stores do not publish this: distributors pick the preview window and
+     * every service serves that same 30s cut. The label default (and what all
+     * three providers return in practice) is 0:30, so the player uses that to
+     * line a clip up with live playback. A track whose label picked another
+     * window will be off by that difference — `matched` stays true because the
+     * *track* matched, not the offset.
+     */
+    offsetMs?: number;
+    /** length of the clip, in ms (30s everywhere; used before metadata loads) */
+    previewMs?: number;
+    /** false when the best hit looked like a different recording */
+    matched?: boolean;
 };
 
+const PREVIEW_OFFSET_MS = 30_000;
+const PREVIEW_LENGTH_MS = 30_000;
+
+function norm(v: string): string {
+    return v
+        .toLowerCase()
+        .replace(/\(feat\.[^)]*\)|\[[^\]]*\]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+}
+
+const COVER_WORDS = /(instrumental|karaoke|cover|remix|slowed|reverb|sped up|nightcore)/i;
+
+/** Pick the right recording instead of whatever the search ranked first. */
+function scoreHit(
+    hitTitle: string,
+    hitArtist: string,
+    track: string,
+    artist: string,
+): number {
+    const nt = norm(track);
+    const na = norm(artist);
+    const ht = norm(hitTitle);
+    const ha = norm(hitArtist);
+    let score = 0;
+    if (ht === nt) score += 5;
+    else if (ht && (ht.includes(nt) || nt.includes(ht))) score += 2.5;
+    if (ha && (ha.includes(na) || na.includes(ha))) score += 3;
+    else if (ha.split(" ").some((w) => w.length > 2 && na.includes(w)))
+        score += 1;
+    if (COVER_WORDS.test(hitTitle) && !COVER_WORDS.test(track)) score -= 2.5;
+    return score;
+}
+
+function best<T>(
+    rows: T[],
+    pick: (row: T) => { title: string; artist: string },
+    track: string,
+    artist: string,
+): { row: T; score: number } | null {
+    let out: { row: T; score: number } | null = null;
+    for (const row of rows) {
+        const meta = pick(row);
+        const score = scoreHit(meta.title, meta.artist, track, artist);
+        if (!out || score > out.score) out = { row, score };
+    }
+    return out;
+}
+
+/**
+ * Resolve a 30s preview for a track.
+ *
+ * Deezer goes first: its preview is consistently 30s from 0:30 and its
+ * catalogue covers the tracks this site plays, so live-playback alignment has
+ * something to align against. Spotify (most apps lost `preview_url`), then
+ * iTunes (whose search needs the scoring above or it happily returns a cover)
+ * fill the gaps.
+ */
 export async function resolvePreview(
     artist: string,
     track: string,
 ): Promise<Preview> {
     const term = `${artist} ${track}`.trim();
+    try {
+        const u = new URL("https://api.deezer.com/search");
+        u.searchParams.set("q", term);
+        u.searchParams.set("limit", "10");
+        const r = await fetch(u.toString(), { cache: "no-store" });
+        if (r.ok) {
+            const d = await r.json();
+            const hits = (d.data || []).filter((x: any) => x?.preview);
+            const hit = best(
+                hits,
+                (x: any) => ({ title: x.title, artist: x.artist?.name }),
+                track,
+                artist,
+            );
+            if (hit && hit.score >= 2.5) {
+                const x = hit.row as any;
+                return {
+                    audio: x.preview,
+                    image: x.album?.cover_medium || "",
+                    name: x.title,
+                    artist: x.artist?.name,
+                    source: "deezer",
+                    offsetMs: PREVIEW_OFFSET_MS,
+                    previewMs: PREVIEW_LENGTH_MS,
+                    matched: hit.score >= 5,
+                };
+            }
+        }
+    } catch {}
     try {
         const sp = await searchSpotifyTrack(artist, track);
         if (sp?.preview)
@@ -328,6 +430,9 @@ export async function resolvePreview(
                 name: sp.name,
                 artist: sp.artist,
                 source: "spotify",
+                offsetMs: PREVIEW_OFFSET_MS,
+                previewMs: PREVIEW_LENGTH_MS,
+                matched: scoreHit(sp.name, sp.artist, track, artist) >= 5,
             };
     } catch {}
     try {
@@ -335,40 +440,33 @@ export async function resolvePreview(
         u.searchParams.set("term", term);
         u.searchParams.set("media", "music");
         u.searchParams.set("entity", "song");
-        u.searchParams.set("limit", "5");
-        const r = await fetch(u.toString());
+        u.searchParams.set("limit", "10");
+        const r = await fetch(u.toString(), { cache: "no-store" });
         if (r.ok) {
             const d = await r.json();
-            const hit = (d.results || []).find((x: any) => x.previewUrl);
-            if (hit)
+            const hits = (d.results || []).filter((x: any) => x?.previewUrl);
+            const hit = best(
+                hits,
+                (x: any) => ({ title: x.trackName, artist: x.artistName }),
+                track,
+                artist,
+            );
+            if (hit && hit.score >= 2.5) {
+                const x = hit.row as any;
                 return {
-                    audio: hit.previewUrl,
-                    image: (hit.artworkUrl100 || "").replace(
+                    audio: x.previewUrl,
+                    image: (x.artworkUrl100 || "").replace(
                         "100x100",
                         "300x300",
                     ),
-                    name: hit.trackName,
-                    artist: hit.artistName,
+                    name: x.trackName,
+                    artist: x.artistName,
                     source: "itunes",
+                    offsetMs: PREVIEW_OFFSET_MS,
+                    previewMs: PREVIEW_LENGTH_MS,
+                    matched: hit.score >= 5,
                 };
-        }
-    } catch {}
-    try {
-        const u = new URL("https://api.deezer.com/search");
-        u.searchParams.set("q", term);
-        u.searchParams.set("limit", "5");
-        const r = await fetch(u.toString());
-        if (r.ok) {
-            const d = await r.json();
-            const hit = (d.data || []).find((x: any) => x.preview);
-            if (hit)
-                return {
-                    audio: hit.preview,
-                    image: hit.album?.cover_medium || "",
-                    name: hit.title,
-                    artist: hit.artist?.name,
-                    source: "deezer",
-                };
+            }
         }
     } catch {}
     return { audio: null };

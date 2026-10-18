@@ -60,6 +60,13 @@ export default async function HomePage() {
                             className="text-white/90 font-medium hover:text-white transition-colors"
                         >
                             last.fm
+                        </a>{" "}
+                        — or sign the{" "}
+                        <a
+                            className="text-white/90 font-medium hover:text-white transition-colors"
+                            href="/guestbook"
+                        >
+                            guestbook
                         </a>
                         .
                     </p>

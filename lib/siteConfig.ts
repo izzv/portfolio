@@ -97,6 +97,7 @@ export const DEFAULT_SITE: SiteConfig = {
         { label: "Projects", href: "/projects", icon: "projects", hidden: false },
         { label: "Skills", href: "/skills", icon: "skills", hidden: false },
         { label: "Biolinks", href: "/biolinks", icon: "links", hidden: false },
+        { label: "Guestbook", href: "/guestbook", icon: "guestbook", hidden: false },
         { label: "Contact", href: "/contact", icon: "contact", hidden: false },
     ],
     skills: {
