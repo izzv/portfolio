@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useExperience, type RGB } from "./ExperienceProvider";
 import DiscordAvatar from "./DiscordAvatar";
-import { site } from "@/lib/site";
+import { useSite } from "./SiteProvider";
 
 type Line = { t: number; text: string };
 
@@ -17,6 +17,7 @@ function bright([r, g, b]: RGB): string {
 
 export default function Header() {
     const { now, lanyard, discordId, primary, secondary } = useExperience();
+    const site = useSite();
     const [lines, setLines] = useState<Line[]>([]);
     const [synced, setSynced] = useState(false);
     const [idx, setIdx] = useState(0);

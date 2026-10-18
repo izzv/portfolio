@@ -4,9 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useExperience, type RGB } from "./ExperienceProvider";
-import { site } from "@/lib/site";
-
-type Item = { label: string; href: string; viewBox: string; path: string };
+import { useSite } from "./SiteProvider";
+import { navIcon } from "@/lib/navIcons";
 
 function tint(
     [r, g, b]: RGB,
@@ -18,11 +17,16 @@ function tint(
     return `rgba(${c(r)},${c(g)},${c(b)},${alpha})`;
 }
 
-const ITEMS: Item[] = site.nav;
-
 export default function Nav() {
     const pathname = usePathname();
     const { primary } = useExperience();
+    const { nav } = useSite();
+    const ITEMS = nav
+        .filter((it) => !it.hidden)
+        .map((it) => {
+            const icon = navIcon(it.icon);
+            return { ...it, viewBox: icon.viewBox, path: icon.path };
+        });
     const navBg = tint(primary, 7, 0.2, 0.72);
     const navBorder = tint(primary, 36, 0.32, 0.16);
     const tipBg = tint(primary, 11, 0.26, 0.94);

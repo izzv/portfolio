@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import MusicTabs from "@/components/MusicTabs";
-import { site } from "@/lib/site";
+import { getSite } from "@/lib/siteStore";
 
-export const metadata: Metadata = { title: `music — ${site.name}` };
+export const dynamic = "force-dynamic";
 
-export default function MusicPage() {
+export async function generateMetadata(): Promise<Metadata> {
+    const site = await getSite();
+    return { title: `music — ${site.name}` };
+}
+
+export default async function MusicPage() {
+    const site = await getSite();
     return (
         <div className="grid grid-rows-[1fr] items-start justify-items-center min-h-[100dvh] p-4 pb-20 sm:p-24">
             <main className="flex flex-col gap-8 items-start max-w-[680px] w-full">

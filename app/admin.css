@@ -1,0 +1,288 @@
+/* ------------------------------------------------------------------
+   admin experience — motion + glass details
+   imported once from the root layout, everything is namespaced .adm-*
+------------------------------------------------------------------- */
+
+.adm-root {
+    position: relative;
+    isolation: isolate;
+}
+
+/* ambient aurora behind the panel */
+.adm-aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0.55;
+}
+
+.adm-blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(90px);
+    will-change: transform;
+}
+
+.adm-blob-a {
+    top: -14%;
+    left: -6%;
+    width: 46vw;
+    height: 46vw;
+    background: radial-gradient(circle at 30% 30%, rgba(150, 170, 200, 0.28), transparent 62%);
+    animation: adm-drift-a 26s ease-in-out infinite alternate;
+}
+
+.adm-blob-b {
+    right: -10%;
+    top: 8%;
+    width: 40vw;
+    height: 40vw;
+    background: radial-gradient(circle at 60% 40%, rgba(214, 196, 160, 0.2), transparent 64%);
+    animation: adm-drift-b 31s ease-in-out infinite alternate;
+}
+
+.adm-blob-c {
+    left: 22%;
+    bottom: -18%;
+    width: 52vw;
+    height: 42vw;
+    background: radial-gradient(circle at 50% 50%, rgba(120, 140, 165, 0.18), transparent 66%);
+    animation: adm-drift-c 37s ease-in-out infinite alternate;
+}
+
+@keyframes adm-drift-a {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to { transform: translate3d(6vw, 4vh, 0) scale(1.15); }
+}
+
+@keyframes adm-drift-b {
+    from { transform: translate3d(0, 0, 0) scale(1.05); }
+    to { transform: translate3d(-7vw, 6vh, 0) scale(0.92); }
+}
+
+@keyframes adm-drift-c {
+    from { transform: translate3d(0, 0, 0) scale(0.95); }
+    to { transform: translate3d(5vw, -5vh, 0) scale(1.18); }
+}
+
+/* staggered entrances */
+@keyframes adm-rise {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.adm-rise {
+    animation: adm-rise 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes adm-panel {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.996);
+        filter: blur(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+.adm-panel {
+    animation: adm-panel 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* cards breathe on hover */
+.adm-card {
+    transition:
+        border-color 0.35s ease,
+        background-color 0.35s ease,
+        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.35s ease;
+}
+
+.adm-card:hover {
+    border-color: rgba(255, 255, 255, 0.13);
+    background-color: rgba(255, 255, 255, 0.028);
+    transform: translateY(-1px);
+    box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.9);
+}
+
+.adm-row {
+    transition:
+        border-color 0.25s ease,
+        background-color 0.25s ease;
+}
+
+.adm-row:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.032);
+}
+
+/* inputs get a soft glow as they take focus */
+.adm-input {
+    transition:
+        border-color 0.2s ease,
+        background-color 0.2s ease,
+        box-shadow 0.25s ease;
+}
+
+/* tab underline dot pops in */
+@keyframes adm-dot {
+    0% { transform: translateX(-50%) scale(0); opacity: 0; }
+    60% { transform: translateX(-50%) scale(1.6); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+.adm-tab-dot {
+    animation: adm-dot 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.adm-tabs {
+    scrollbar-width: none;
+    box-shadow:
+        0 18px 40px -30px rgba(0, 0, 0, 0.9),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.adm-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+/* skill chips */
+.adm-chip {
+    transition:
+        border-color 0.2s ease,
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.adm-chip:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.07);
+    transform: translateY(-1px);
+}
+
+/* preview panels get a slow rotating sheen */
+.adm-preview {
+    isolation: isolate;
+}
+
+.adm-preview::before {
+    content: "";
+    position: absolute;
+    inset: -60%;
+    z-index: -1;
+    pointer-events: none;
+    background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        rgba(255, 255, 255, 0.16) 40deg,
+        transparent 110deg,
+        transparent 220deg,
+        rgba(255, 255, 255, 0.1) 280deg,
+        transparent 340deg
+    );
+    animation: adm-spin 22s linear infinite;
+    opacity: 0.16;
+}
+
+@keyframes adm-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* save button sweep */
+.adm-save::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+        100deg,
+        transparent 20%,
+        rgba(255, 255, 255, 0.35) 48%,
+        transparent 72%
+    );
+    transform: translateX(-130%);
+    pointer-events: none;
+}
+
+.adm-save:not(:disabled):hover::after {
+    animation: adm-sweep 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes adm-sweep {
+    to { transform: translateX(130%); }
+}
+
+/* save bar slides up once */
+@keyframes adm-bar-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.adm-savebar > div {
+    animation: adm-bar-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+
+/* toast drops in (keeps its centering translate) */
+@keyframes adm-toast-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -14px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+}
+
+.adm-toast {
+    animation: adm-toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* jump cards nudge */
+.adm-jump {
+    will-change: transform;
+}
+
+/* play nice with reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .adm-rise,
+    .adm-panel,
+    .adm-toast,
+    .adm-blob,
+    .adm-tab-dot,
+    .adm-preview::before,
+    .adm-save::after,
+    .adm-savebar > div {
+        animation: none !important;
+    }
+
+    .adm-card,
+    .adm-row,
+    .adm-chip,
+    .adm-input,
+    .adm-save {
+        transition: none !important;
+    }
+
+    .adm-card:hover,
+    .adm-chip:hover {
+        transform: none;
+    }
+}

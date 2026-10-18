@@ -12,8 +12,9 @@ bunx tsc --noEmit  # typecheck
 bun run build      # production build
 ```
 
-Everything personal lives in **`lib/site.ts`**. Change the identity there and
-every page follows.
+Everything personal lives in **`site.json`** through the editor at **`/admin`**.
+Defaults (the seed before the first save) are in `lib/siteConfig.ts`, and every
+page follows whatever the config says.
 
 ---
 
@@ -27,16 +28,17 @@ every page follows.
 | `/skills` | grouped skill pills with brand icons | `site.skills` |
 | `/biolinks` | two external profile links (`wsp.baby/yo`, `injuri.ng/no`) | `site.biolinks` |
 | `/contact` | Discord hero card + one card per contact | `site.socials`, `site.contacts` |
-| `/admin/projects` | password-gated project manager (add / edit / reorder / feature / delete) | `projects.json` via `/api/admin/projects` |
+| `/admin` | password-gated site editor: profile, socials, links, skills, nav, commissions, projects, dashboard | `site.json` / `projects.json` |
 
 Each page still has its own `<title>` (`music — ryan`, `projects — ryan`, …) from
 `site.name`; the root layout only supplies the bare name.
 
 ## Where identity lives
 
-`lib/site.ts` is the single source of truth: `name`, `age`, `greeting`,
-`timezone`, `socials` (IDs **and** display handles), `contacts`, `biolinks`,
-`skills`, `commission`, `nav`. Projects moved out of this file — see below.
+`site.json` is the single source of truth (edited at `/admin`, seeded from
+`lib/siteConfig.ts`): `name`, `age`, `greeting`, `tagline`, `role`, `timezone`,
+`socials` (IDs **and** display handles), `contacts`, `biolinks`, `skills`,
+`commission`, `nav`. Projects live in their own file — see below.
 
 Two deliberate choices:
 
@@ -63,7 +65,7 @@ One project is listed right now:
   **https://grief.pics**. The screenshot is a real capture saved to
   `public/media/projects/grief-website.png`.
 
-### Managing projects — `/admin/projects`
+### Managing projects — `/admin` → projects
 
 Password-gated with `ADMIN_PASSWORD`; a successful login sets an
 `HttpOnly`, `SameSite=Strict`, HMAC-signed cookie (7 days). The signing key is
@@ -83,6 +85,8 @@ Defence in depth — none of these layers replaces another:
 
 - add a project, edit any field, reorder with ↑/↓, mark **featured** (large card
   with screenshot), delete (with confirm)
+
+`/admin/projects` still exists as a redirect to `/admin?tab=projects`.
 - **save changes** writes `projects.json` atomically and revalidates `/projects`
 - failures surface inline; unsaved work warns before leaving the page
 
@@ -117,6 +121,47 @@ letter tile, a missing icon a letter badge, a project without a URL is rendered
 as a plain card (never `href=""`), and the "more projects" section is omitted
 when nothing non-featured exists.
 
+## Site editor — `/admin`
+
+The whole site is data, not source. `/admin` is a password-gated control room
+with eight tabs: **overview** (views, visitors, counts, quick actions),
+**profile** (name, age, greeting, role, tagline, timezone, live hero preview),
+**socials** (discord id + handle, github, last.fm, telegram, roblox),
+**links** (biolinks and contact cards, add/remove/reorder),
+**skills** (groups and pills), **nav** (label, href, icon preset, visibility,
+order), **commissions** (toggle, price, sponsor, preview) and **projects**
+(the existing editor, embedded).
+
+Saving is one draft: edits stay local until **save** (or ⌘S / ctrl+S), which
+`PUT`s the whole config. **discard** drops the draft, **reset** returns to the
+shipped defaults, and overview can **export/import** `site.json` for backup or
+seeding another instance. Unsaved work warns before leaving. `Cmd+S`,
+`?tab=…` deep links and a floating status bar keep the loop fast.
+
+Content lives in `site.json` at the repo root (gitignored) through
+`lib/siteStore.ts`, which mirrors the projects store: Vercel Blob when
+`BLOB_READ_WRITE_TOKEN` is set, the repo file on a normal VPS, the OS temp dir
+with a warning on a read-only host. `lib/siteConfig.ts` owns the types,
+defaults and `normalizeSite()` — every string is trimmed and capped, URLs are
+restricted to `http(s)` or root-relative, icon keys must be a known nav preset,
+the timezone is validated with `Intl`, and empty rows are dropped. The root
+layout loads the config on each request and hands it to the client through
+`SiteProvider`, so edits are server-rendered on the next page load (the API
+calls `revalidatePath("/", "layout")` after a save).
+
+`app/admin-utilities.css` is a generated utility snapshot used only by the
+admin markup (the site's main utility sheet predates it); regenerate it if you
+add new utility classes to `components/admin/*`.
+
+```bash
+curl -s -c /tmp/cj -X POST localhost:3000/api/admin/login \
+  -H 'Content-Type: application/json' -d '{"password":"<ADMIN_PASSWORD>"}'
+curl -s -b /tmp/cj localhost:3000/api/admin/site
+```
+
+`GET`/`PUT /api/admin/site` returns `401` without a session, `403` for a write
+from another origin, `413` above 256 KB.
+
 ## How it was built
 
 ### 1. Audit for template leftovers
@@ -138,7 +183,7 @@ and the package name.
 
 | File | Change |
 | --- | --- |
-| `lib/site.ts` | `name: "ryan"` |
+| `lib/siteConfig.ts` | `name: "ryan"` (the shipped default) |
 | `package.json`, `package-lock.json`, `bun.lock` | `name: ryan-site` |
 | `app/api/img/route.ts`, `lib/lastfm.ts` | `User-Agent: ryan-site/3.0` |
 
@@ -199,20 +244,22 @@ Confirmed:
   `Header` still prefers `lanyard.username` at runtime and falls back to
   `site.socials.discordHandle`.
 - **Last.fm username** — `LASTFM_USER=izzv` in `.env.local`, because
-  `lib/lastfm.ts` reads the user from env, not from `site.ts`.
+  `lib/lastfm.ts` reads the user from env, not from the site config.
 
 ## Changing something later
 
-- **Name, handles, bio, links, skills** → `lib/site.ts` only.
-- **Adding a project** → `/admin/projects` (or edit `projects.json` by hand).
+- **Name, handles, bio, links, skills, nav, commissions** → `/admin` (or edit
+  `site.json` by hand, then reload). defaults live in `lib/siteConfig.ts`.
+- **Adding a project** → `/admin?tab=projects` (or edit `projects.json` by hand).
   Omit `icon`/`shot` and the page falls back to letter tiles; mark it
   `featured` for the big card, otherwise it lands under "more projects".
-- **Adding a contact card** → append to `site.contacts`; the grid renders it and
-  picks an icon from `BRAND_ICON` by `platform`. Add the icon there if the
-  platform is new.
-- **Adding a biolink** → append to `site.biolinks`; omit `img` and the pill falls back to a letter tile. `/biolinks` renders as one embed-style card (`app/biolinks/page.tsx` + the `.embed-*` rules in `app/globals.css`): a hero banner with `site.tagline`, then every biolink plus the socials from `site.socials` as pills, so adding a link needs no markup change. The page currently points at two external profiles (`https://wsp.baby/yo`, `https://injuri.ng/no`).
+- **Adding a contact card** → add it in `/admin` → links; the grid renders it and
+  picks an icon from `BRAND_ICON` by `platform` (unknown platforms get a link
+  glyph).
+- **Adding a biolink** → add it in `/admin` → links; omit `img` and the pill falls back to a letter tile. `/biolinks` renders as one embed-style card (`app/biolinks/page.tsx` + the `.embed-*` rules in `app/globals.css`): a hero banner with `site.tagline`, then every biolink plus the socials from `site.socials` as pills, so adding a link needs no markup change. The page currently points at two external profiles (`https://wsp.baby/yo`, `https://injuri.ng/no`).
 - **Last.fm account** → `.env.local` (`LASTFM_USER`) plus `socials.lastfm`.
-- **Timezone** → `site.timezone` (used by `LocalTime`).
+- **Timezone** → profile tab (used by `LocalTime`).
+- **Navigation** → nav tab; icons come from the presets in `lib/navIcons.ts`.
 
 ## Background
 
@@ -336,7 +383,7 @@ running in `temporary` mode, and a failed blob write returns the real reason
 `.env.local` expects: `VIEWS_SECRET`, `LASTFM_API_KEY`, `LASTFM_API_SECRET`,
 `LASTFM_USER`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`,
 `SPOTIFY_REFRESH_TOKEN`, `SP_DC_COOKIE`, plus `ADMIN_PASSWORD` and
-`ADMIN_SECRET` for `/admin/projects`, and optionally
+`ADMIN_SECRET` for `/admin`, and optionally
 `BLOB_READ_WRITE_TOKEN` for durable project saves. Both admin values are required — without
 `ADMIN_PASSWORD` the login page explains the missing config instead of accepting
 a blank password, and `ADMIN_SECRET` (falls back to `VIEWS_SECRET`) is what
@@ -358,7 +405,7 @@ preview, so the favourite tab plays).
   Without them, `lib/playClock.ts` anchors on the first poll that saw the track
   playing and counts from there: a track that started before the server first
   saw it (or before a deploy) reads late, and seeks are invisible.
-- Project data is a JSON file, so it needs a writable filesystem that persists
-  between requests (a normal VPS/container). On a read-only or ephemeral host the
-  admin save returns `500`; commit `projects.json` and redeploy instead, since
-  the build reads it from disk.
+- Site and project data are JSON files, so they need a writable filesystem that
+  persists between requests (a normal VPS/container) or a Vercel Blob token. On
+  a read-only host without a token the admin falls back to the OS temp dir and
+  says so; set `BLOB_READ_WRITE_TOKEN` to make saves durable.

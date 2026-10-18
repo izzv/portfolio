@@ -9,3 +9,5 @@ viewscount.json
 viewscount.enc
 *.tsbuildinfo
 projects.json.*.tmp
+site.json
+site.json.*.tmp

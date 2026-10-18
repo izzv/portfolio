@@ -73,7 +73,13 @@ function RowButton({
     );
 }
 
-export default function ProjectsAdmin({ initial }: { initial: Project[] }) {
+export default function ProjectsAdmin({
+    initial,
+    embedded = false,
+}: {
+    initial: Project[];
+    embedded?: boolean;
+}) {
     const router = useRouter();
     const [items, setItems] = useState<Project[]>(initial);
     const [openIds, setOpenIds] = useState<string[]>([]);
@@ -182,8 +188,21 @@ export default function ProjectsAdmin({ initial }: { initial: Project[] }) {
     }
 
     return (
-        <div className="flex min-h-[100dvh] flex-col items-center p-4 pb-24 sm:p-24">
-            <main className="flex w-full max-w-[760px] flex-col gap-5">
+        <div
+            className={
+                embedded
+                    ? "flex flex-col"
+                    : "flex min-h-[100dvh] flex-col items-center p-4 pb-24 sm:p-24"
+            }
+        >
+            <main
+                className={
+                    embedded
+                        ? "flex w-full flex-col gap-4"
+                        : "flex w-full max-w-[760px] flex-col gap-5"
+                }
+            >
+                {!embedded && (
                 <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 text-white/70">
@@ -214,6 +233,7 @@ export default function ProjectsAdmin({ initial }: { initial: Project[] }) {
                         log out
                     </button>
                 </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-2">
                     <button

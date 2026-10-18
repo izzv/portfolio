@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { site } from "@/lib/site";
+import { useSite } from "./SiteProvider";
 
 export type Now = {
     isPlaying: boolean;
@@ -49,7 +49,6 @@ export function useExperience() {
     return v;
 }
 
-const DISCORD_ID = site.socials.discord.split("/").filter(Boolean).pop() || "";
 const proxied = (u: string) => `/api/img?url=${encodeURIComponent(u)}`;
 
 const FALLBACK_PALETTE: RGB[] = [
@@ -122,6 +121,11 @@ export default function ExperienceProvider({
 }: {
     children: React.ReactNode;
 }) {
+    const site = useSite();
+    const DISCORD_ID = useMemo(
+        () => site.socials.discord.split("/").filter(Boolean).pop() || "",
+        [site.socials.discord],
+    );
     const [now, setNow] = useState<Now | null>(null);
     const [lanyard, setLanyard] = useState<Lanyard>(null);
     const [palette, setPalette] = useState<RGB[]>(FALLBACK_PALETTE);
@@ -222,7 +226,7 @@ export default function ExperienceProvider({
             on = false;
             clearInterval(id);
         };
-    }, []);
+    }, [DISCORD_ID]);
 
     const playing = !!now?.isPlaying;
     const avatarUrl = lanyard?.avatar

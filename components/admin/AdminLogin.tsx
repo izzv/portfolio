@@ -38,7 +38,7 @@ export default function AdminLogin({ configured }: { configured: boolean }) {
 
     return (
         <div className="flex min-h-[100dvh] flex-col items-center justify-center p-4 pb-24 sm:p-24">
-            <main className="w-full max-w-[360px]">
+            <main className="adm-rise w-full max-w-[360px]">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 text-white/70">
                         <span className="h-[1px] w-4 bg-white/50" />
@@ -47,8 +47,11 @@ export default function AdminLogin({ configured }: { configured: boolean }) {
                         </span>
                     </div>
                     <h1 className="text-2xl font-bold tracking-tight text-white">
-                        projects
+                        control room
                     </h1>
+                    <p className="text-xs text-white/45">
+                        sign in to edit the whole site.
+                    </p>
                 </div>
 
                 {configured ? (

@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
-import { site } from "@/lib/site";
 import { proxiedImage, type Project } from "@/lib/projects";
 import { getProjects } from "@/lib/projectsStore";
+import { getSite } from "@/lib/siteStore";
 import CommissionBar from "@/components/CommissionBar";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: `projects — ${site.name}` };
+export async function generateMetadata(): Promise<Metadata> {
+    const site = await getSite();
+    return { title: `projects — ${site.name}` };
+}
 
 const Arrow = ({
     size = 14,
@@ -230,7 +233,7 @@ function ProjectRow({ project }: { project: Project }) {
 }
 
 export default async function ProjectsPage() {
-    const projects = await getProjects();
+    const [projects, site] = await Promise.all([getProjects(), getSite()]);
     const featured = projects.filter((p) => p.featured);
     const rest = projects.filter((p) => !p.featured);
 

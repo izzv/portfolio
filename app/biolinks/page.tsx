@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import * as Si from "react-icons/si";
-import { site } from "@/lib/site";
+import { getSite } from "@/lib/siteStore";
+import type { SiteConfig } from "@/lib/siteConfig";
 
-export const metadata: Metadata = {
-    title: `biolinks — ${site.name}`,
-    description: site.tagline,
-};
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+    const site = await getSite();
+    return {
+        title: `biolinks — ${site.name}`,
+        description: site.tagline,
+    };
+}
 
 const OPEN_PATH =
     "M320 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l82.7 0L201.4 265.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L448 109.3l0 82.7c0 17.7 14.3 32 32 32s32-14.3 32-32l0-160c0-17.7-14.3-32-32-32L320 0zM80 32C35.8 32 0 67.8 0 112L0 432c0 44.2 35.8 80 80 80l320 0c44.2 0 80-35.8 80-80l0-112c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 112c0 8.8-7.2 16-16 16L80 448c-8.8 0-16-7.2-16-16l0-320c0-8.8 7.2-16 16-16l112 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L80 32z";
@@ -33,7 +39,7 @@ type Pill = {
     icon: React.ReactNode;
 };
 
-const SOCIALS: Pill[] = [
+const socials = (site: SiteConfig): Pill[] => [
     {
         key: "discord",
         label: `@${site.socials.discordHandle}`,
@@ -60,7 +66,8 @@ const SOCIALS: Pill[] = [
     },
 ];
 
-export default function BiolinksPage() {
+export default async function BiolinksPage() {
+    const site = await getSite();
     return (
         <div className="flex min-h-[100dvh] flex-col items-center justify-center p-4 pb-24 sm:p-24">
             <main className="embed-card anim-item w-full max-w-[660px]">
@@ -118,7 +125,7 @@ export default function BiolinksPage() {
                             </a>
                         ))}
 
-                        {SOCIALS.map((s, i) => (
+                        {socials(site).map((s, i) => (
                             <a
                                 key={s.key}
                                 href={s.href}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { site } from "@/lib/site";
+import { useSite } from "./SiteProvider";
 
 function fmt(date: Date, tz?: string, hour12 = true): string {
     try {
@@ -21,6 +21,7 @@ function fmt(date: Date, tz?: string, hour12 = true): string {
 }
 
 export default function LocalTime() {
+    const { timezone } = useSite();
     const [now, setNow] = useState<Date | null>(null);
     const [hour12, setHour12] = useState<boolean>(true);
 
@@ -37,7 +38,7 @@ export default function LocalTime() {
     }, []);
 
     const yours = now ? fmt(now, undefined, hour12) : "--:--";
-    const mine = now ? fmt(now, site.timezone, hour12) : "--:--";
+    const mine = now ? fmt(now, timezone, hour12) : "--:--";
 
     return (
         <p className="text-xs text-white/60 leading-relaxed">

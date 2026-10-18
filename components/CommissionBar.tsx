@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { site } from "@/lib/site";
+import { useSite } from "./SiteProvider";
 import CommissionModal from "./CommissionModal";
 
 export default function CommissionBar() {
+    const site = useSite();
     const [open, setOpen] = useState(false);
 
     return (

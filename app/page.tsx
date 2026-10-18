@@ -1,8 +1,11 @@
 import Header from "@/components/Header";
 import Pills from "@/components/Pills";
-import { site } from "@/lib/site";
+import { getSite } from "@/lib/siteStore";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+    const site = await getSite();
     return (
         <div className="grid grid-rows-[1fr] items-center justify-items-center min-h-[100dvh] p-4 pb-20 sm:p-24">
             <main className="flex flex-col gap-3 items-start max-w-[680px] w-full">
@@ -21,7 +24,7 @@ export default function HomePage() {
                             </span>
                         )}
                         <span className="text-white/90 font-medium">
-                            full stack dev
+                            {site.role}
                         </span>{" "}
                         building things with modern web tech. focused on minimal
                         architectures and purposeful software. check out my{" "}

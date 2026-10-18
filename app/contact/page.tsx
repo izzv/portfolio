@@ -3,9 +3,15 @@ import * as Si from "react-icons/si";
 import CopyButton from "@/components/CopyButton";
 import DiscordAvatar from "@/components/DiscordAvatar";
 import LocalTime from "@/components/LocalTime";
-import { site } from "@/lib/site";
+import { getSite } from "@/lib/siteStore";
+import { navIcon } from "@/lib/navIcons";
 
-export const metadata: Metadata = { title: `contact — ${site.name}` };
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+    const site = await getSite();
+    return { title: `contact — ${site.name}` };
+}
 
 const OPEN_PATH =
     "M320 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l82.7 0L201.4 265.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L448 109.3l0 82.7c0 17.7 14.3 32 32 32s32-14.3 32-32l0-160c0-17.7-14.3-32-32-32L320 0zM80 32C35.8 32 0 67.8 0 112L0 432c0 44.2 35.8 80 80 80l320 0c44.2 0 80-35.8 80-80l0-112c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 112c0 8.8-7.2 16-16 16L80 448c-8.8 0-16-7.2-16-16l0-320c0-8.8 7.2-16 16-16l112 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L80 32z";
@@ -92,7 +98,8 @@ function SmallCard({
     );
 }
 
-export default function ContactPage() {
+export default async function ContactPage() {
+    const site = await getSite();
     return (
         <div className="grid grid-rows-[1fr] items-start justify-items-center min-h-[100dvh] p-4 pb-20 sm:p-24">
             <main className="flex flex-col gap-8 items-start max-w-[680px] w-full">
@@ -168,6 +175,7 @@ export default function ContactPage() {
                             .filter((c) => c.platform !== "Discord")
                             .map((c, i) => {
                             const Icon = BRAND_ICON[c.platform];
+                            const fallback = navIcon("links");
                             return (
                                 <div
                                     key={c.platform}
@@ -177,7 +185,22 @@ export default function ContactPage() {
                                     }}
                                 >
                                     <SmallCard
-                                        icon={Icon ? <Icon className="size-5" /> : null}
+                                        icon={
+                                            Icon ? (
+                                                <Icon className="size-5" />
+                                            ) : (
+                                                <svg
+                                                    stroke="currentColor"
+                                                    fill="currentColor"
+                                                    strokeWidth="0"
+                                                    viewBox={fallback.viewBox}
+                                                    className="size-5"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d={fallback.path} />
+                                                </svg>
+                                            )
+                                        }
                                         handle={c.handle}
                                         note={c.note}
                                         copyAria={`Copy ${c.platform} handle`}

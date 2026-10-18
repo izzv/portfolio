@@ -1,6 +1,6 @@
 "use client";
 
-import { site } from "@/lib/site";
+import { useSite } from "./SiteProvider";
 
 export default function CommissionModal({
     open,
@@ -9,6 +9,7 @@ export default function CommissionModal({
     open: boolean;
     onClose: () => void;
 }) {
+    const site = useSite();
     if (!open) return null;
 
     return (
