@@ -6,6 +6,7 @@ import ExperienceProvider from "@/components/ExperienceProvider";
 import DynamicBackground from "@/components/DynamicBackground";
 import DynamicIsland from "@/components/DynamicIsland";
 import Nav from "@/components/Nav";
+import PageTransition from "@/components/PageTransition";
 import Views from "@/components/Views";
 import ColorOverlay from "@/components/ColorOverlay";
 import { site } from "@/lib/site"
@@ -28,7 +29,7 @@ export default function RootLayout({
                     <DynamicBackground />
                     <Nav />
                     <DynamicIsland />
-                    {children}
+                    <PageTransition>{children}</PageTransition>
                     <Views />
                     <ColorOverlay />
                 </ExperienceProvider>

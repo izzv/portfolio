@@ -65,9 +65,21 @@ One project is listed right now:
 
 ### Managing projects — `/admin/projects`
 
-Password-gated with `ADMIN_PASSWORD`; a successful login sets an HMAC-signed,
-`HttpOnly` cookie (7 days) signed with `ADMIN_SECRET`. The page is `noindex` and
-not linked from the public nav.
+Password-gated with `ADMIN_PASSWORD`; a successful login sets an
+`HttpOnly`, `SameSite=Strict`, HMAC-signed cookie (7 days). The signing key is
+`SHA-256(ADMIN_SECRET | ADMIN_PASSWORD)`, so rotating the password invalidates
+every session issued under the old one. The page is `noindex`, disallowed in
+`robots.txt`, and not linked from the public nav.
+
+Defence in depth — none of these layers replaces another:
+
+| Layer | What it does |
+| --- | --- |
+| `middleware.ts` | rejects `/api/admin/*` without a session cookie before the route runs, and stamps every admin response with `no-store`, `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `nosniff`, `no-referrer`, `X-Robots-Tag: noindex` |
+| page (`app/admin/projects/page.tsx`) | re-verifies the HMAC server-side and renders only the login form when it fails — project data is never in the HTML for an unauthenticated visitor |
+| route handlers | `isAuthed()` HMAC verification, same origin required for writes, body capped at 128 KB |
+| cookie | `HttpOnly` (no JS access), `SameSite=Strict` (no cross-site sends), `Secure` on https, 7-day expiry |
+| login | constant-time password compare, 8 attempts per IP per 5 minutes, generic error |
 
 - add a project, edit any field, reorder with ↑/↓, mark **featured** (large card
   with screenshot), delete (with confirm)
@@ -87,8 +99,9 @@ curl -s -c /tmp/cj -X POST localhost:3000/api/admin/login \
 curl -s -b /tmp/cj localhost:3000/api/admin/projects
 ```
 
-Unauthenticated `GET`/`PUT /api/admin/projects` returns `401`; login is rate
-limited to 8 attempts per IP per 5 minutes.
+Unauthenticated `GET`/`PUT /api/admin/projects` returns `401`; a forged or
+expired cookie gets `401`, and an API write carrying another origin gets `403`.
+Login is rate limited to 8 attempts per IP per 5 minutes.
 
 ### Images that refuse to hotlink
 
@@ -200,6 +213,46 @@ Confirmed:
 - **Adding a biolink** → append to `site.biolinks`; omit `img` if there's no avatar. The page currently points at two external profiles (`https://wsp.baby/yo`, `https://injuri.ng/no`).
 - **Last.fm account** → `.env.local` (`LASTFM_USER`) plus `socials.lastfm`.
 - **Timezone** → `site.timezone` (used by `LocalTime`).
+
+## Motion
+
+All page motion lives in `app/globals.css` (this project has no Tailwind
+runtime, so utility classes alone would not animate anything):
+
+- `.page-enter` — fade/rise on every route change, re-keyed by `pathname` in
+  `components/PageTransition.tsx`
+- `.anim-item` — staggered reveal, delay set per item inline
+- `.lift` — hover lift shared by project, contact, biolinks and home cards
+- `.anim-glow` — slow glow pulse available for status dots
+
+Animations use `animation-fill-mode: backwards` so no transform lingers to
+become a containing block for `position: fixed` children, and everything is
+disabled under `prefers-reduced-motion: reduce` (verified in Chrome: reported
+`animationName` is `pageRise` normally and `none` with reduced motion).
+
+## Deployment (Vercel)
+
+`vercel.json` pins the framework to `nextjs` and the build/install commands. If
+a project was first imported when this repo only contained `README.md`, Vercel
+can keep the **Other** preset and serve a platform-level `404 NOT_FOUND` at `/`
+even though the build is green. The file overrides that, and the same values can
+be set manually under **Settings → Build & Deployment**:
+
+| Setting | Value |
+| --- | --- |
+| Framework Preset | Next.js |
+| Root Directory | `.` (repo root) |
+| Build Command | `next build` |
+| Output Directory | `.next` (default) |
+
+Environment variables (`LASTFM_*`, `VIEWS_SECRET`, `ADMIN_PASSWORD`,
+`ADMIN_SECRET`, …) must be added in the Vercel dashboard too — `.env.local` is
+never committed.
+
+**Project saves on Vercel:** the admin writes `projects.json` to disk, which
+works locally but not on a read-only/serverless filesystem. On Vercel, commit
+`projects.json` and redeploy, or move the store to durable storage (Blob/KV)
+before relying on the editor there.
 
 ## Configuration
 

@@ -8,7 +8,10 @@ export default function HomePage() {
             <main className="flex flex-col gap-3 items-start max-w-[680px] w-full">
                 <Header />
 
-                <div className="bg-cardColor/20 backdrop-blur-md border border-white/[0.05] p-4 rounded-lg shadow-[0_0px_40px_-15px_rgba(0,0,0,0.3)] relative">
+                <div
+                    className="lift anim-item bg-cardColor/20 backdrop-blur-md border border-white/[0.05] p-4 rounded-lg shadow-[0_0px_40px_-15px_rgba(0,0,0,0.3)] relative"
+                    style={{ animationDelay: "70ms" }}
+                >
                     <div className="absolute -top-px left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                     <p className="text-sm text-white/80 leading-relaxed">
                         i&#x27;m a{" "}
@@ -59,7 +62,12 @@ export default function HomePage() {
                     </p>
                 </div>
 
-                <Pills />
+                <div
+                    className="anim-item w-full"
+                    style={{ animationDelay: "150ms" }}
+                >
+                    <Pills />
+                </div>
             </main>
         </div>
     );

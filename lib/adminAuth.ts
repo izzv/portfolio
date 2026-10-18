@@ -8,8 +8,19 @@ function secret(): string {
     return process.env.ADMIN_SECRET || process.env.VIEWS_SECRET || "";
 }
 
+/**
+ * The signing key includes the password, so changing ADMIN_PASSWORD invalidates
+ * every session that was issued under the old one.
+ */
+function signingKey(): Buffer {
+    return crypto
+        .createHash("sha256")
+        .update(`${secret()}|${process.env.ADMIN_PASSWORD || ""}`)
+        .digest();
+}
+
 function sign(value: string): string {
-    return crypto.createHmac("sha256", secret()).update(value).digest("hex");
+    return crypto.createHmac("sha256", signingKey()).update(value).digest("hex");
 }
 
 export function passwordConfigured(): boolean {
@@ -30,7 +41,7 @@ export function makeToken(): string {
 }
 
 export function verifyToken(token: string | undefined): boolean {
-    if (!token || !secret()) return false;
+    if (!token || !secret() || !process.env.ADMIN_PASSWORD) return false;
     const [exp, sig] = token.split(".");
     if (!exp || !sig) return false;
     const expected = sign(exp);

@@ -249,7 +249,8 @@ export default function ProjectsAdmin({ initial }: { initial: Project[] }) {
                         return (
                             <li
                                 key={project.id}
-                                className="relative isolate overflow-hidden rounded-lg border border-white/[0.06] bg-cardColor/20 backdrop-blur-md"
+                                className="anim-item relative isolate overflow-hidden rounded-lg border border-white/[0.06] bg-cardColor/20 backdrop-blur-md"
+                                style={{ animationDelay: `${index * 45}ms` }}
                             >
                                 <div className="flex items-center gap-2.5 p-2.5">
                                     <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-white/[0.06] ring-1 ring-white/[0.08]">

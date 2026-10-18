@@ -82,7 +82,7 @@ export default function SkillsPage() {
     return (
         <div className="grid grid-rows-[1fr] items-start justify-items-center min-h-[100dvh] p-4 pb-20 sm:p-24">
             <main className="flex flex-col gap-8 items-start max-w-[680px] w-full">
-                <div className="space-y-4">
+                <div className="anim-item space-y-4">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 text-white/70">
                             <span className="h-[1px] w-4 bg-white/50" />
@@ -100,8 +100,12 @@ export default function SkillsPage() {
                     </p>
                 </div>
                 <div className="flex flex-col gap-8 w-full">
-                    {Object.entries(site.skills).map(([section, items]) => (
-                        <section key={section}>
+                    {Object.entries(site.skills).map(([section, items], i) => (
+                        <section
+                            key={section}
+                            className="anim-item"
+                            style={{ animationDelay: `${80 + i * 90}ms` }}
+                        >
                             <h3 className="text-white/75 text-sm mb-4 flex items-center gap-2">
                                 <span>{section}</span>
                             </h3>

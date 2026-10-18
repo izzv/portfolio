@@ -56,7 +56,7 @@ function SmallCard({
     openHref: string;
 }) {
     return (
-        <div className="group relative overflow-hidden rounded-xl border border-white/[0.06] bg-cardColor/20 backdrop-blur-md shadow-[0_0px_40px_-15px_rgba(0,0,0,0.3)] transition-colors duration-300 hover:border-white/[0.12] p-3">
+        <div className="lift group relative overflow-hidden rounded-xl border border-white/[0.06] bg-cardColor/20 backdrop-blur-md shadow-[0_0px_40px_-15px_rgba(0,0,0,0.3)] p-3">
             <div className="pointer-events-none absolute -top-px left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             <div className="relative flex items-center gap-3">
                 <div
@@ -96,7 +96,7 @@ export default function ContactPage() {
     return (
         <div className="grid grid-rows-[1fr] items-start justify-items-center min-h-[100dvh] p-4 pb-20 sm:p-24">
             <main className="flex flex-col gap-8 items-start max-w-[680px] w-full">
-                <div className="space-y-4">
+                <div className="anim-item space-y-4">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 text-white/70">
                             <span className="h-[1px] w-4 bg-white/50" />
@@ -115,7 +115,10 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex flex-col gap-3 w-full">
-                    <div className="group relative overflow-hidden rounded-xl border border-white/[0.06] bg-cardColor/20 backdrop-blur-md shadow-[0_0px_40px_-15px_rgba(0,0,0,0.3)] transition-colors duration-300 hover:border-white/[0.12] p-4">
+                    <div
+                        className="lift anim-item group relative overflow-hidden rounded-xl border border-white/[0.06] bg-cardColor/20 backdrop-blur-md shadow-[0_0px_40px_-15px_rgba(0,0,0,0.3)] p-4"
+                        style={{ animationDelay: "80ms" }}
+                    >
                         <div className="pointer-events-none absolute -top-px left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                         <div className="relative flex flex-col gap-3.5">
                             <div className="flex items-center gap-3.5">
@@ -163,18 +166,25 @@ export default function ContactPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {site.contacts
                             .filter((c) => c.platform !== "Discord")
-                            .map((c) => {
+                            .map((c, i) => {
                             const Icon = BRAND_ICON[c.platform];
                             return (
-                                <SmallCard
+                                <div
                                     key={c.platform}
-                                    icon={Icon ? <Icon className="size-5" /> : null}
-                                    handle={c.handle}
-                                    note={c.note}
-                                    copyAria={`Copy ${c.platform} handle`}
-                                    openAria={`Open ${c.platform}`}
-                                    openHref={c.url}
-                                />
+                                    className="anim-item"
+                                    style={{
+                                        animationDelay: `${140 + i * 70}ms`,
+                                    }}
+                                >
+                                    <SmallCard
+                                        icon={Icon ? <Icon className="size-5" /> : null}
+                                        handle={c.handle}
+                                        note={c.note}
+                                        copyAria={`Copy ${c.platform} handle`}
+                                        openAria={`Open ${c.platform}`}
+                                        openHref={c.url}
+                                    />
+                                </div>
                             );
                             })}
                     </div>

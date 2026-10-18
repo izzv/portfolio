@@ -7,7 +7,7 @@ export default function BiolinksPage() {
     return (
         <div className="flex min-h-[100dvh] flex-col items-center p-4 pb-20 sm:p-24">
             <main className="flex w-full max-w-[680px] flex-col gap-8">
-                <div className="space-y-4">
+                <div className="anim-item space-y-4">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 text-white/70">
                             <span className="h-[1px] w-4 bg-white/50" />
@@ -24,15 +24,16 @@ export default function BiolinksPage() {
                     </p>
                 </div>
                 <div className="flex flex-col gap-2.5">
-                    {site.biolinks.map((l) => (
+                    {site.biolinks.map((l, i) => (
                         <a
                             key={l.name}
                             href={l.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="group block"
+                            className="anim-item group block"
+                            style={{ animationDelay: `${90 + i * 80}ms` }}
                         >
-                            <article className="relative isolate overflow-hidden rounded-lg border border-white/[0.05] bg-cardColor/20 backdrop-blur-md shadow-[0px_24px_48px_-16px_#00000059,0px_12px_24px_-8px_#0000004c,0px_6px_12px_-4px_#0000003d,0px_3px_6px_-2px_#0000002e,inset_0px_0px_0px_1px_#ffffff14,inset_0px_1px_0px_#ffffff26] transition-[border-color,box-shadow] duration-500 ease-out group-hover:border-white/[0.1]">
+                            <article className="lift relative isolate overflow-hidden rounded-lg border border-white/[0.05] bg-cardColor/20 backdrop-blur-md shadow-[0px_24px_48px_-16px_#00000059,0px_12px_24px_-8px_#0000004c,0px_6px_12px_-4px_#0000003d,0px_3px_6px_-2px_#0000002e,inset_0px_0px_0px_1px_#ffffff14,inset_0px_1px_0px_#ffffff26] group-hover:border-white/[0.1]">
                                 {l.img && (
                                     <span
                                         aria-hidden="true"

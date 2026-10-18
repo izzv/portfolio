@@ -62,7 +62,7 @@ function FeaturedCard({ project }: { project: Project }) {
                 boxShadow:
                     "0px 32px 64px -16px rgba(0,0,0,0.30), 0px 16px 32px -8px rgba(0,0,0,0.30), 0px 8px 16px -4px rgba(0,0,0,0.24), 0px 4px 8px -2px rgba(0,0,0,0.24), 0px 2px 4px -1px rgba(0,0,0,0.24), inset 0 0 0 1px rgba(255,255,255,0.08), inset 0 1px 0 rgba(255,255,255,0.20)",
             }}
-            className="relative isolate flex flex-col overflow-hidden rounded-lg border bg-cardColor/20 backdrop-blur-md transition-[border-color,box-shadow] duration-700 ease-out"
+            className="lift relative isolate flex flex-col overflow-hidden rounded-lg border bg-cardColor/20 backdrop-blur-md"
         >
             <span
                 aria-hidden="true"
@@ -158,7 +158,7 @@ function ProjectRow({ project }: { project: Project }) {
     const backdrop = icon || proxiedImage(project.shot);
 
     const row = (
-        <article className="relative isolate overflow-hidden rounded-lg border border-white/[0.05] bg-cardColor/20 backdrop-blur-md shadow-[0px_24px_48px_-16px_#00000059,0px_12px_24px_-8px_#0000004c,0px_6px_12px_-4px_#0000003d,0px_3px_6px_-2px_#0000002e,inset_0px_0px_0px_1px_#ffffff14,inset_0px_1px_0px_#ffffff26] transition-[border-color,box-shadow] duration-500 ease-out group-hover:border-white/[0.1]">
+        <article className="lift relative isolate overflow-hidden rounded-lg border border-white/[0.05] bg-cardColor/20 backdrop-blur-md shadow-[0px_24px_48px_-16px_#00000059,0px_12px_24px_-8px_#0000004c,0px_6px_12px_-4px_#0000003d,0px_3px_6px_-2px_#0000002e,inset_0px_0px_0px_1px_#ffffff14,inset_0px_1px_0px_#ffffff26] group-hover:border-white/[0.1]">
             {backdrop && (
                 <span
                     aria-hidden="true"
@@ -239,7 +239,7 @@ export default async function ProjectsPage() {
             <main className="flex w-full max-w-[680px] flex-col gap-8">
                 {site.commission.enabled && <CommissionBar />}
 
-                <div className="space-y-4">
+                <div className="anim-item space-y-4">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 text-white/70">
                             <span className="h-[1px] w-4 bg-white/50" />
@@ -264,8 +264,14 @@ export default async function ProjectsPage() {
 
                 {featured.length > 0 && (
                     <div className="flex w-full flex-col gap-6">
-                        {featured.map((p) => (
-                            <FeaturedCard key={p.id} project={p} />
+                        {featured.map((p, i) => (
+                            <div
+                                key={p.id}
+                                className="anim-item"
+                                style={{ animationDelay: `${80 + i * 80}ms` }}
+                            >
+                                <FeaturedCard project={p} />
+                            </div>
                         ))}
                     </div>
                 )}
@@ -279,8 +285,14 @@ export default async function ProjectsPage() {
                             </span>
                         </div>
                         <ul className="flex w-full flex-col gap-2.5">
-                            {rest.map((p) => (
-                                <li key={p.id}>
+                            {rest.map((p, i) => (
+                                <li
+                                    key={p.id}
+                                    className="anim-item"
+                                    style={{
+                                        animationDelay: `${120 + i * 60}ms`,
+                                    }}
+                                >
                                     <ProjectRow project={p} />
                                 </li>
                             ))}
