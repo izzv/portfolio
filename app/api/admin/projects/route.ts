@@ -94,7 +94,7 @@ export async function PUT(req: NextRequest) {
         log("error", "admin", "failed to save projects", { error: detail });
         return NextResponse.json(
             {
-                error: "could not write projects.json",
+                error: "could not save the projects to MongoDB",
                 detail,
                 storage: storageMode(),
             },

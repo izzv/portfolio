@@ -1,10 +1,18 @@
-import { promises as fs } from "fs";
-import path from "path";
-import { decryptJSON, encryptJSON } from "./crypto";
+import type { Collection } from "mongodb";
+import { getDb } from "./mongodb";
 
-const FILE = path.join(process.cwd(), "viewscount.enc");
+/**
+ * One document per device, keyed by the client's fingerprint. Counting is a
+ * `countDocuments()` and a repeat visit is a single atomic `$inc`, so two
+ * requests landing at once can no longer lose a count the way the old
+ * read-modify-write JSON file could.
+ *
+ * The counter has always reported devices, not page loads: a known device
+ * bumps `hits` but not the displayed total.
+ */
 
-type Device = {
+type DeviceDoc = {
+    _id: string;
     firstSeen: number;
     lastSeen: number;
     hits: number;
@@ -12,83 +20,45 @@ type Device = {
     ip?: string;
 };
 
-type Store = {
-    total: number;
-    devices: Record<string, Device>;
-};
+const COLLECTION = "devices";
 
-let memory: Store | null = null;
-let writeChain: Promise<void> = Promise.resolve();
-
-async function load(): Promise<Store> {
-    if (memory) return memory;
-    try {
-        const raw = await fs.readFile(FILE, "utf8");
-        const parsed = decryptJSON<Partial<Store>>(raw);
-        memory = {
-            total:
-                parsed && typeof parsed.total === "number" ? parsed.total : 0,
-            devices:
-                parsed && parsed.devices && typeof parsed.devices === "object"
-                    ? parsed.devices
-                    : {},
-        };
-    } catch {
-        memory = { total: 0, devices: {} };
-    }
-    return memory;
-}
-
-function persist(store: Store): Promise<void> {
-    writeChain = writeChain.then(async () => {
-        try {
-            await fs.writeFile(FILE, encryptJSON(store), "utf8");
-        } catch {}
-    });
-    return writeChain;
+async function collection(): Promise<Collection<DeviceDoc>> {
+    return (await getDb()).collection<DeviceDoc>(COLLECTION);
 }
 
 export async function getViews(): Promise<{
     total: number;
     uniqueDevices: number;
 }> {
-    const store = await load();
-    return {
-        total: store.total,
-        uniqueDevices: Object.keys(store.devices).length,
-    };
+    const total = await (await collection()).countDocuments();
+    return { total, uniqueDevices: total };
 }
 
 export async function recordView(
     deviceId: string,
     meta: { ua?: string; ip?: string },
 ): Promise<{ total: number; unique: boolean; uniqueDevices: number }> {
-    const store = await load();
+    const devices = await collection();
     const now = Date.now();
-    const existing = store.devices[deviceId];
-    let unique = false;
 
-    if (existing) {
-        existing.lastSeen = now;
-        existing.hits += 1;
-        if (meta.ua) existing.ua = meta.ua;
-        if (meta.ip) existing.ip = meta.ip;
-    } else {
-        unique = true;
-        store.total += 1;
-        store.devices[deviceId] = {
-            firstSeen: now,
-            lastSeen: now,
-            hits: 1,
-            ua: meta.ua,
-            ip: meta.ip,
-        };
-    }
+    const seen: Partial<DeviceDoc> = { lastSeen: now };
+    if (meta.ua) seen.ua = meta.ua;
+    if (meta.ip) seen.ip = meta.ip;
 
-    await persist(store);
+    const result = await devices.updateOne(
+        { _id: deviceId },
+        {
+            $set: seen,
+            $setOnInsert: { firstSeen: now },
+            $inc: { hits: 1 },
+        },
+        { upsert: true },
+    );
+
+    const total = await devices.countDocuments();
     return {
-        total: store.total,
-        unique,
-        uniqueDevices: Object.keys(store.devices).length,
+        total,
+        unique: result.upsertedCount === 1,
+        uniqueDevices: total,
     };
 }

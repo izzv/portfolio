@@ -92,7 +92,7 @@ export async function PUT(req: NextRequest) {
         const detail = e instanceof Error ? e.message : String(e);
         log("error", "admin", "failed to save guestbook", { error: detail });
         return NextResponse.json(
-            { error: "could not write guestbook.json", detail },
+            { error: "could not save the guestbook to MongoDB", detail },
             { status: 500 },
         );
     }

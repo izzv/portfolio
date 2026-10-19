@@ -4,6 +4,7 @@ import { getSite, siteStorageMode, siteStorageWarning } from "@/lib/siteStore";
 import { getProjects } from "@/lib/projectsStore";
 import { getViews } from "@/lib/viewsStore";
 import { getGuestbook } from "@/lib/guestbookStore";
+import { log } from "@/lib/logger";
 import AdminLogin from "@/components/admin/AdminLogin";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -25,10 +26,17 @@ export default async function AdminPage({
 
     const config = await getSite();
     const storage = siteStorageMode();
-    const [projects, views, guestbook] = await Promise.all([
+    // View stats are a dashboard nicety: an unreachable database must still
+    // render the editor (and its banner), not crash the page.
+    const [projects, guestbook, views] = await Promise.all([
         getProjects(),
-        getViews(),
         getGuestbook(),
+        getViews().catch((e: unknown) => {
+            log("error", "admin", "view stats unavailable", {
+                error: e instanceof Error ? e.message : String(e),
+            });
+            return { total: 0, uniqueDevices: 0 };
+        }),
     ]);
 
     return (

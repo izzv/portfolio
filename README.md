@@ -13,9 +13,9 @@ bunx tsc --noEmit  # typecheck
 bun run build      # production build
 ```
 
-Everything personal lives in **`site.json`** through the editor at **`/admin`**.
-Defaults (the seed before the first save) are in `lib/siteConfig.ts`, and every
-page follows whatever the config says.
+Everything personal lives in **MongoDB** — one `site` document, edited at
+**`/admin`**. Defaults (what the site renders before the first save) are in
+`lib/siteConfig.ts`, and every page follows whatever the config says.
 
 ---
 
@@ -24,14 +24,14 @@ page follows whatever the config says.
 | Section (on `/`) | Old route | Renders | Data |
 | --- | --- | --- | --- |
 | `#home` | `/` | name, Discord handle/avatar, short bio, listening line, social pills | `site.name`, `site.socials`, Lanyard, `/api/nowplaying` |
-| `#projects` | `/projects` | featured project card(s) with screenshots, then any extra projects | `projects.json` via `lib/projectsStore.ts` |
+| `#projects` | `/projects` | featured project card(s) with screenshots, then any extra projects | `projects` document via `lib/projectsStore.ts` |
 | `#music` | `/music` | albums, tracks, favourite (with preview playback + progress), stats | Last.fm via `/api/top`, `/api/stats`, `/api/play` |
 | `#commissions` | `/commissions` | status, crypto-only payment block with accepted coins, scope and process | `site.commission` |
 | `#skills` | `/skills` | grouped skill pills with brand icons | `site.skills` |
-| `#guestbook` | `/guestbook` | open form plus approved notes | `guestbook.json` via `/api/guestbook` |
+| `#guestbook` | `/guestbook` | open form plus approved notes | `guestbook` document via `/api/guestbook` |
 | `#biolinks` | `/biolinks` | two external profile links (`wsp.baby/yo`, `injuri.ng/no`) | `site.biolinks` |
 | `#contact` | `/contact` | Discord hero card + one card per contact | `site.socials`, `site.contacts` |
-| `/admin` | — | password-gated site editor: profile, socials, links, skills, nav, commissions, guestbook, projects, dashboard | `site.json` / `guestbook.json` / `projects.json` |
+| `/admin` | — | password-gated site editor: profile, socials, links, skills, nav, commissions, guestbook, projects, dashboard | `site` / `guestbook` / `projects` documents |
 
 Every section route still exists and answers with a `307` to `/#section`, so old
 links and bookmarks keep working. `/` is the only public URL in `sitemap.xml`.
@@ -40,10 +40,10 @@ described below, and `app/not-found.tsx` renders a real 404 status.
 
 ## Where identity lives
 
-`site.json` is the single source of truth (edited at `/admin`, seeded from
-`lib/siteConfig.ts`): `name`, `age`, `greeting`, `tagline`, `role`, `timezone`,
-`socials` (IDs **and** display handles), `contacts`, `biolinks`, `skills`,
-`commission`, `nav`. Projects live in their own file — see below.
+The `site` document is the single source of truth (edited at `/admin`, seeded
+from `lib/siteConfig.ts`): `name`, `age`, `greeting`, `tagline`, `role`,
+`timezone`, `socials` (IDs **and** display handles), `contacts`, `biolinks`,
+`skills`, `commission`, `nav`. Projects live in their own document — see below.
 
 Two deliberate choices:
 
@@ -60,9 +60,10 @@ The name is `ryan` (it was `ryan.ong`). Nothing else hardcodes it — the home
 
 ## Projects
 
-Projects are data, not source: `projects.json` at the repo root is the source of
-truth and the projects section reads it on every request (`export const dynamic =
-"force-dynamic"`), so an admin save shows up without a rebuild.
+Projects are data, not source: the `projects` document in MongoDB is the source
+of truth and the projects section reads it on every request (`export const
+dynamic = "force-dynamic"`), so an admin save shows up without a rebuild. Before
+the first save it renders `DEFAULT_PROJECTS` from `lib/projects.ts`.
 
 One project is listed right now:
 
@@ -92,15 +93,15 @@ Defence in depth — none of these layers replaces another:
   with screenshot), delete (with confirm)
 
 `/admin/projects` still exists as a redirect to `/admin?tab=projects`.
-- **save changes** writes `projects.json` atomically and revalidates `/projects`
+- **save changes** replaces the `projects` document and revalidates `/projects`
 - failures surface inline; unsaved work warns before leaving the page
 
 Fields: `name`, `year`, `description`, `url`, `cta`, `icon`, `shot`, `featured`.
 Validation lives in `lib/projects.ts` (`normalizeProjects`) — strings are trimmed
 and capped, links are restricted to `http(s)` or root-relative paths (a bare
 `grief.pics` becomes `https://grief.pics/`), ids are slugged and de-duplicated,
-and empty rows are dropped. `lib/projectsStore.ts` writes to a temp file then
-renames it, so a crash can't leave a half-written `projects.json`.
+and empty rows are dropped. `lib/projectsStore.ts` replaces the whole document
+in one `updateOne` upsert, so a crash can't leave a half-written list.
 
 ```bash
 curl -s -c /tmp/cj -X POST localhost:3000/api/admin/login \
@@ -146,10 +147,9 @@ shipped defaults, and overview can **export/import** `site.json` for backup or
 seeding another instance. Unsaved work warns before leaving. `Cmd+S`,
 `?tab=…` deep links and a floating status bar keep the loop fast.
 
-Content lives in `site.json` at the repo root (gitignored) through
-`lib/siteStore.ts`, which mirrors the projects store: Vercel Blob when
-`BLOB_READ_WRITE_TOKEN` is set, the repo file on a normal VPS, the OS temp dir
-with a warning on a read-only host. `lib/siteConfig.ts` owns the types,
+The draft is persisted as one document through `lib/siteStore.ts` (MongoDB,
+see [Storage](#storage--mongodb)); the export is still a plain `site.json` so a
+backup can be re-imported or read by hand. `lib/siteConfig.ts` owns the types,
 defaults and `normalizeSite()` — every string is trimmed and capped, URLs are
 restricted to `http(s)` or root-relative, icon keys must be a known nav preset,
 the timezone is validated with `Intl`, and empty rows are dropped. The root
@@ -176,7 +176,7 @@ from another origin, `413` above 256 KB.
 ## Appearance — `/admin` → appearance
 
 The look is data too. Every control writes an `appearance` object into the same
-`site.json`, and `lib/appearance.ts` turns it into CSS custom properties on the
+`site` document, and `lib/appearance.ts` turns it into CSS custom properties on the
 home shell (plus `data-*` attributes), so the whole look is one inline style and
 one CSS file rather than a prop threaded through every component.
 
@@ -221,7 +221,7 @@ The **live preview** under the presets is the real hero: the same
 same frame, and a typing effect shows its caret there too.
 
 The defaults in `lib/siteConfig.ts` are exactly the look the site shipped with,
-so an old `site.json` upgrades cleanly: `normalizeSite()` clamps every number and
+so an older config upgrades cleanly: `normalizeSite()` clamps every number and
 falls back for every enum. The hero markup lives in
 `components/sections/HeroSection.tsx`, the CSS variables in `lib/appearance.ts`
 and their rules in `app/appearance.css`; nav width, section width and the
@@ -292,8 +292,8 @@ Notes land with `approved: false` and are invisible until they are approved in
 /api/admin/guestbook` replaces the list; deleting a note is a `PUT` without it.
 
 `lib/guestbook.ts` caps name/message (`32`/`500`), strips everything else and
-drops empty rows; `lib/guestbookStore.ts` is the same blob/file/temp store as
-site and projects. `POST /api/guestbook` is origin-checked, body-capped at 8 KB,
+drops empty rows; `lib/guestbookStore.ts` keeps the list in the `guestbook`
+document, newest first, capped at 300. `POST /api/guestbook` is origin-checked, body-capped at 8 KB,
 rate-limited to 3 notes per 10 minutes per IP (12/day), and silently accepts
 and drops submissions that fill the hidden `website` honeypot. Entries render
 as plain React text (escaped) and optional links are `nofollow`.
@@ -425,8 +425,8 @@ Confirmed:
 ## Changing something later
 
 - **Name, handles, bio, links, skills, nav, commissions** → `/admin` (or edit
-  `site.json` by hand, then reload). defaults live in `lib/siteConfig.ts`.
-- **Adding a project** → `/admin?tab=projects` (or edit `projects.json` by hand).
+  the `site` document by hand, then reload). defaults live in `lib/siteConfig.ts`.
+- **Adding a project** → `/admin?tab=projects` (or edit the `projects` document).
   Omit `icon`/`shot` and the page falls back to letter tiles; mark it
   `featured` for the big card, otherwise it lands under "more projects".
 - **Adding a contact card** → add it in `/admin` → links; the grid renders it and
@@ -601,29 +601,44 @@ Environment variables (`LASTFM_*`, `VIEWS_SECRET`, `ADMIN_PASSWORD`,
 `ADMIN_SECRET`, …) must be added in the Vercel dashboard too — `.env.local` is
 never committed.
 
-**Project saves on Vercel:** the deployment filesystem is read-only, so
-`lib/projectsStore.ts` picks its backend at runtime:
+## Storage — MongoDB
+
+Nothing is written to the deployment filesystem. All durable data lives in
+MongoDB and `lib/mongodb.ts` owns the one client (cached on `globalThis` so
+serverless invocations and hot reloads reuse the pool, with a 5s server-selection
+timeout so a bad URI fails fast).
+
+| Collection | Document | Contents |
+| --- | --- | --- |
+| `site` | `config` | profile, socials, links, skills, nav, commissions, appearance |
+| `projects` | `list` | the ordered project array |
+| `guestbook` | `list` | entries, newest first (max 300) |
+| `devices` | one per fingerprint | `firstSeen`, `lastSeen`, `hits`, `ua`, `ip` for the counter |
+
+The database name is `MONGODB_DB`, falling back to `ryan-site`. Writes replace
+one document, so a save is atomic; the counter is an upsert with `$inc` instead
+of the old read-modify-write file. The admin reports which mode it is in:
 
 | Mode | When | Behaviour |
 | --- | --- | --- |
-| `blob` | `BLOB_READ_WRITE_TOKEN` is set | Durable: saves go to a Vercel Blob named `projects.json`, and every instance reads it back |
-| `file` | no token, writable dir | Writes `projects.json` in the repo root (local dev, VPS) |
-| `temporary` | no token, read-only dir | Writes to the OS temp dir, returns a warning — the save works but dies with the instance |
+| `mongodb` | `MONGODB_URI` is set and reachable | Saves persist and every instance reads them back |
+| `unavailable` | no URI, or the cluster is unreachable | Public pages render the shipped defaults, `/admin` shows a yellow banner and saves fail with the real driver error |
 
-To make production saves permanent: **Vercel → Storage → Create → Blob**, pick
-a **public** store, connect it to the project, and redeploy. Vercel injects
-`BLOB_READ_WRITE_TOKEN` automatically; set it in `.env.local` too if you want
-the same behaviour locally. The admin page shows a yellow banner whenever it is
-running in `temporary` mode, and a failed blob write returns the real reason
-(e.g. `This store does not exist.`) instead of a generic 500.
+Create a free cluster at **[MongoDB Atlas](https://www.mongodb.com/atlas)**
+(M0 is free, no card), add a database user, allow your app's IPs (`0.0.0.0/0`
+for Vercel's dynamic egress), then **Connect → Drivers** and copy the string.
+Set it as `MONGODB_URI` in **Vercel → Settings → Environment Variables** and in
+`.env.local` for local dev. Nothing needs to be seeded by hand: until the first
+save the site renders `lib/siteConfig.ts` and `lib/projects.ts`, then the first
+`/admin` save creates the documents.
 
 ## Configuration
 
 `.env.local` expects: `VIEWS_SECRET`, `LASTFM_API_KEY`, `LASTFM_API_SECRET`,
 `LASTFM_USER`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`,
 `SPOTIFY_REFRESH_TOKEN`, `SP_DC_COOKIE`, plus `ADMIN_PASSWORD` and
-`ADMIN_SECRET` for `/admin`, and optionally
-`BLOB_READ_WRITE_TOKEN` for durable site, guestbook and project saves and
+`ADMIN_SECRET` for `/admin`, `MONGODB_URI` for all saved content, and
+optionally `MONGODB_DB` (database name, default `ryan-site`) and
 `NEXT_PUBLIC_SITE_URL` for absolute links (sitemap, Open Graph, JSON-LD). Both admin values are required — without
 `ADMIN_PASSWORD` the login page explains the missing config instead of accepting
 a blank password, and `ADMIN_SECRET` (falls back to `VIEWS_SECRET`) is what
@@ -645,15 +660,16 @@ preview, so the favourite tab plays).
   Without them, `lib/playClock.ts` anchors on the first poll that saw the track
   playing and counts from there: a track that started before the server first
   saw it (or before a deploy) reads late, and seeks are invisible.
-- Site, guestbook and project data are JSON files, so they need a writable
-  filesystem that persists between requests (a normal VPS/container) or a Vercel
-  Blob token. On a read-only host without a token the admin falls back to the OS
-  temp dir and says so; set `BLOB_READ_WRITE_TOKEN` to make saves durable.
+- Every save needs `MONGODB_URI`. Without it (or while the cluster is
+  unreachable) public pages still render the shipped defaults, but `/admin`
+  saves, guestbook submissions and view counting fail — the admin says so
+  instead of pretending. Data from the old JSON stores is not migrated
+  automatically; re-import the `site.json` export or re-enter it in `/admin`.
 - Preview sync assumes the 30s clip starts at 0:30, which is the label default
   and what the three stores return in practice. The APIs do not publish the
   offset, so a track whose label picked another window will be off by exactly
   that difference. Without Spotify owner credentials the live position used for
   the first seek is the estimate from `lib/playClock.ts`.
-- The guestbook item in the nav comes from the config. A `site.json` saved
+- The guestbook item in the nav comes from the config. A config saved
   before it existed keeps its old nav; add the item in `/admin` → nav (the
   section is still reachable from the home link, the palette and `/#guestbook`).

@@ -89,7 +89,7 @@ export async function PUT(req: NextRequest) {
         log("error", "admin", "failed to save site config", { error: detail });
         return NextResponse.json(
             {
-                error: "could not write site.json",
+                error: "could not save the site config to MongoDB",
                 detail,
                 storage: siteStorageMode(),
             },
