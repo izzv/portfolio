@@ -1,0 +1,186 @@
+/* ------------------------------------------------------------------
+   lego — a brick-assembly loading screen, and the brick-like entrance
+   used by the `lego` build style.
+
+   The overlay is only visible while `html[data-lego="on"]` is set. A tiny
+   inline script in the layout sets it (once per tab session, never with
+   reduced motion) and a failsafe removes it, so without JS the page is
+   simply there — no overlay to get stuck behind.
+------------------------------------------------------------------- */
+
+.lego-loader {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 140;
+    place-items: center;
+    pointer-events: none;
+    background:
+        radial-gradient(
+            46% 46% at 50% 46%,
+            var(--lego-glow, rgba(255, 255, 255, 0.12)),
+            transparent 72%
+        ),
+        radial-gradient(90% 70% at 50% 40%, #141416 0%, #08080a 72%);
+}
+
+/* a very faint baseplate of studs across the veil */
+.lego-loader::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(
+        circle at 4px 4px,
+        rgba(255, 255, 255, 0.05) 0 2.2px,
+        transparent 2.8px
+    );
+    background-size: 28px 28px;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+/* hold the page still while the wall is built */
+html[data-lego="on"] {
+    overflow: hidden;
+}
+
+html[data-lego="on"] .lego-loader {
+    display: grid;
+    animation: lego-veil-out 0.55s cubic-bezier(0.22, 1, 0.36, 1) 1.5s forwards;
+}
+
+.lego-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    transform: rotate(-1.5deg);
+}
+
+.lego-wall {
+    filter: drop-shadow(0 26px 26px rgba(0, 0, 0, 0.55));
+}
+
+.lego-wall {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.lego-row {
+    display: flex;
+    gap: 5px;
+    will-change: transform;
+}
+
+.lego-row:nth-child(2) {
+    transform: translateX(-9px);
+}
+
+.lego-row:nth-child(3) {
+    transform: translateX(7px);
+}
+
+.lego-brick {
+    position: relative;
+    width: var(--w, 60px);
+    height: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.3),
+        rgba(255, 255, 255, 0.1) 46%,
+        rgba(255, 255, 255, 0.055)
+    );
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.38),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+        0 10px 16px -10px rgba(0, 0, 0, 0.95);
+    animation: lego-drop 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    animation-delay: calc(var(--i, 0) * 65ms + 70ms);
+}
+
+/* two studs on top of every brick */
+.lego-brick::before,
+.lego-brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 11px;
+    height: 6px;
+    border-radius: 5px 5px 1px 1px;
+    background: rgba(255, 255, 255, 0.34);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.lego-brick::before {
+    left: 9px;
+}
+
+.lego-brick::after {
+    right: 9px;
+}
+
+/* a few accent-tinted bricks so the loader picks up the saved accent */
+.lego-brick:nth-child(3n) {
+    background: linear-gradient(
+        180deg,
+        var(--lego-brick, rgba(255, 255, 255, 0.26)),
+        rgba(255, 255, 255, 0.05) 60%
+    );
+}
+
+.lego-caption {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 10px;
+    letter-spacing: 0.36em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.42);
+    animation: lego-caption-in 0.5s ease 0.35s both;
+}
+
+@keyframes lego-drop {
+    0% {
+        opacity: 0;
+        transform: translateY(-30px) rotate(-5deg) scale(0.9);
+    }
+    62% {
+        opacity: 1;
+        transform: translateY(3px) rotate(0.9deg) scale(1.02);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) rotate(0) scale(1);
+    }
+}
+
+@keyframes lego-caption-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes lego-veil-out {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-lego="on"] .lego-loader {
+        display: none;
+        animation: none;
+    }
+
+    .lego-brick,
+    .lego-caption {
+        animation: none;
+    }
+}

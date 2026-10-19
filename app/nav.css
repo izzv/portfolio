@@ -40,7 +40,7 @@ html {
     grid-template-rows: 1fr;
     justify-items: center;
     min-height: 100dvh;
-    padding: 5rem 1rem 5rem;
+    padding: 5rem 1rem calc(5rem + var(--section-pad-extra, 0px));
 }
 
 .site-section-inner {
@@ -48,12 +48,12 @@ html {
     flex-direction: column;
     gap: 2rem;
     width: 100%;
-    max-width: 680px;
+    max-width: var(--shell-width, 680px);
 }
 
 @media (min-width: 640px) {
     .site-section {
-        padding: 7rem 6rem 6rem;
+        padding: 7rem 6rem calc(6rem + var(--section-pad-extra, 0px));
     }
 }
 

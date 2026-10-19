@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useSite } from "./SiteProvider";
+import { accentRgb, accentSecondary } from "@/lib/appearance";
 
 export type Now = {
     isPlaying: boolean;
@@ -118,8 +119,10 @@ function extractPalette(img: HTMLImageElement): RGB[] {
 
 export default function ExperienceProvider({
     children,
+    accent = "",
 }: {
     children: React.ReactNode;
+    accent?: string;
 }) {
     const site = useSite();
     const DISCORD_ID = useMemo(
@@ -254,8 +257,13 @@ export default function ExperienceProvider({
         };
     }, [source]);
 
-    const primary = palette[0] ?? FALLBACK_PALETTE[0];
-    const secondary = palette[1] ?? palette[0] ?? FALLBACK_PALETTE[1];
+    // An accent saved in /admin → appearance wins over the live palette; the
+    // rest of the site (rail, header gradient, island, scene) follows along.
+    const fixed = useMemo(() => accentRgb(accent), [accent]);
+    const primary = fixed ?? palette[0] ?? FALLBACK_PALETTE[0];
+    const secondary = fixed
+        ? accentSecondary(fixed)
+        : (palette[1] ?? palette[0] ?? FALLBACK_PALETTE[1]);
 
     const value = useMemo<Ctx>(
         () => ({

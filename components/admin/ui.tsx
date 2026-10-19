@@ -156,6 +156,263 @@ export function Toggle({
     );
 }
 
+/** A labelled range slider with a live readout, like the appearance panel. */
+export function Slider({
+    label,
+    value,
+    min,
+    max,
+    step = 1,
+    suffix = "",
+    hint,
+    format,
+    onChange,
+}: {
+    label: string;
+    value: number;
+    min: number;
+    max: number;
+    step?: number;
+    suffix?: string;
+    hint?: string;
+    /** custom readout, e.g. fractions that need three decimals */
+    format?: (value: number) => string;
+    onChange: (value: number) => void;
+}) {
+    const id = `slider-${label.replace(/\s+/g, "-").toLowerCase()}`;
+    return (
+        <Field label={label} hint={hint} htmlFor={id}>
+            <div className="flex items-center gap-3">
+                <input
+                    id={id}
+                    type="range"
+                    className="adm-range"
+                    min={min}
+                    max={max}
+                    step={step}
+                    value={value}
+                    onChange={(e) => onChange(Number(e.target.value))}
+                />
+                <output
+                    htmlFor={id}
+                    className="w-14 shrink-0 text-right text-[11px] tabular-nums text-white/60"
+                >
+                    {format ? format(value) : `${value}${suffix}`}
+                </output>
+            </div>
+        </Field>
+    );
+}
+
+type Option<T extends string> = {
+    value: T;
+    label: string;
+    blurb?: string;
+};
+
+/** A row of mutually exclusive buttons — the "Card style" control. */
+export function Segmented<T extends string>({
+    label,
+    hint,
+    value,
+    options,
+    onChange,
+}: {
+    label: string;
+    hint?: string;
+    value: T;
+    options: readonly Option<T>[];
+    onChange: (value: T) => void;
+}) {
+    return (
+        <Field label={label} hint={hint}>
+            <div
+                role="radiogroup"
+                aria-label={label}
+                className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none]"
+            >
+                {options.map((o) => {
+                    const active = o.value === value;
+                    return (
+                        <button
+                            key={o.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            onClick={() => onChange(o.value)}
+                            className={`min-w-0 flex-1 shrink-0 basis-0 rounded-lg border px-2.5 py-2 text-center transition-[color,background,border-color,box-shadow] duration-200 ${
+                                active
+                                    ? "border-white/25 bg-white/[0.12] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                                    : "border-white/[0.07] bg-white/[0.02] text-white/50 hover:border-white/[0.16] hover:text-white/80"
+                            }`}
+                            style={{ minWidth: "5.75rem" }}
+                        >
+                            <span className="block text-[11px] leading-tight">
+                                {o.label}
+                            </span>
+                            {o.blurb && (
+                                <span className="mt-0.5 block text-[10px] leading-snug text-white/35">
+                                    {o.blurb}
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+        </Field>
+    );
+}
+
+/** Big preset tiles with a tiny mock of the result, like "Classic / Modern / Portfolio". */
+export function ChoiceCards<T extends string>({
+    label,
+    hint,
+    value,
+    options,
+    onChange,
+}: {
+    label: string;
+    hint?: string;
+    value: T;
+    options: readonly (Option<T> & { preview: React.ReactNode })[];
+    onChange: (value: T) => void;
+}) {
+    return (
+        <Field label={label} hint={hint}>
+            <div
+                role="radiogroup"
+                aria-label={label}
+                className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+            >
+                {options.map((o) => {
+                    const active = o.value === value;
+                    return (
+                        <button
+                            key={o.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            onClick={() => onChange(o.value)}
+                            className={`rounded-lg border p-2 text-left transition-[border-color,background,box-shadow] duration-200 ${
+                                active
+                                    ? "border-white/30 bg-white/[0.09] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                                    : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.18]"
+                            }`}
+                        >
+                            <span className="block overflow-hidden rounded-md border border-white/[0.06] bg-black/35 p-1.5">
+                                {o.preview}
+                            </span>
+                            <span className="mt-2 block text-xs text-white/85">
+                                {o.label}
+                            </span>
+                            {o.blurb && (
+                                <span className="mt-0.5 block text-[10px] leading-snug text-white/35">
+                                    {o.blurb}
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+        </Field>
+    );
+}
+
+/** A collapsible group, so a panel can keep the common knobs on top. */
+export function MoreOptions({
+    label = "more options",
+    children,
+}: {
+    label?: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <details className="adm-more group rounded-lg border border-white/[0.06] bg-white/[0.015]">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-[11px] text-white/45 transition-colors duration-200 hover:text-white/80">
+                <span className="inline-block transition-transform duration-200 group-open:rotate-90">
+                    ›
+                </span>
+                {label}
+            </summary>
+            <div className="flex flex-col gap-3 border-t border-white/[0.06] px-3 py-3">
+                {children}
+            </div>
+        </details>
+    );
+}
+
+/** Hex colour with a swatch preview and a few one-click presets. */
+export function ColorField({
+    label,
+    value,
+    onChange,
+    hint,
+    placeholder,
+    swatches = [],
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    hint?: string;
+    placeholder?: string;
+    swatches?: string[];
+}) {
+    const id = `color-${label.replace(/\s+/g, "-").toLowerCase()}`;
+    return (
+        <Field label={label} hint={hint} htmlFor={id}>
+            <div className="flex items-center gap-2">
+                <span
+                    aria-hidden="true"
+                    className="size-7 shrink-0 rounded-md border border-white/[0.12]"
+                    style={
+                        value
+                            ? { background: value }
+                            : {
+                                  backgroundImage:
+                                      "linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04))",
+                              }
+                    }
+                />
+                <input
+                    id={id}
+                    value={value}
+                    spellCheck={false}
+                    placeholder={placeholder}
+                    onChange={(e) => onChange(e.target.value)}
+                    className={INPUT}
+                />
+                {value && (
+                    <button
+                        type="button"
+                        onClick={() => onChange("")}
+                        className="shrink-0 rounded-md border border-white/[0.08] px-2 py-1.5 text-[10px] text-white/45 transition-colors hover:border-white/[0.2] hover:text-white/85"
+                    >
+                        clear
+                    </button>
+                )}
+            </div>
+            {swatches.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                    {swatches.map((s) => (
+                        <button
+                            key={s}
+                            type="button"
+                            aria-label={`use ${s}`}
+                            onClick={() => onChange(s)}
+                            style={{ background: s }}
+                            className={`size-5 rounded-md border transition-transform duration-150 hover:scale-[1.08] ${
+                                value.toLowerCase() === s.toLowerCase()
+                                    ? "border-white/60"
+                                    : "border-white/[0.14]"
+                            }`}
+                        />
+                    ))}
+                </div>
+            )}
+        </Field>
+    );
+}
+
 export function Section({
     title,
     description,

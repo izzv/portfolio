@@ -12,6 +12,7 @@ import ProjectsAdmin from "./ProjectsAdmin";
 import GuestbookPanel from "./GuestbookPanel";
 import type { GuestEntry } from "@/lib/guestbook";
 import {
+    AppearancePanel,
     CommissionPanel,
     LinksPanel,
     NavPanel,
@@ -25,6 +26,7 @@ import { Pill } from "./ui";
 const TABS = [
     { id: "overview", label: "overview" },
     { id: "profile", label: "profile" },
+    { id: "appearance", label: "appearance" },
     { id: "socials", label: "socials" },
     { id: "links", label: "links" },
     { id: "skills", label: "skills" },
@@ -326,6 +328,9 @@ export default function AdminShell({
                     </div>
                     <div className={tab === "profile" ? "adm-panel" : "hidden"}>
                         <ProfilePanel draft={draft} patch={patch} />
+                    </div>
+                    <div className={tab === "appearance" ? "adm-panel" : "hidden"}>
+                        <AppearancePanel draft={draft} patch={patch} />
                     </div>
                     <div className={tab === "socials" ? "adm-panel" : "hidden"}>
                         <SocialsPanel draft={draft} patch={patch} />

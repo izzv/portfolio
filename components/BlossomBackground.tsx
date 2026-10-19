@@ -279,7 +279,15 @@ const PETALS: Petal[] = (() => {
 
 /* ---------- component ---------- */
 
-export default function BlossomBackground() {
+export default function BlossomBackground({
+    /** scene opacity, %, from /admin → appearance */
+    intensity = 100,
+    /** dark veil over the scene so text stays readable, % */
+    dim = 0,
+}: {
+    intensity?: number;
+    dim?: number;
+}) {
     const { primary, secondary } = useExperience();
     const wrapRef = useRef<HTMLDivElement>(null);
     const frame = useRef(0);
@@ -321,7 +329,18 @@ export default function BlossomBackground() {
     }, [primary, secondary]);
 
     return (
-        <div className="bb-wrap" aria-hidden="true" ref={wrapRef}>
+        <div
+            className="bb-wrap"
+            aria-hidden="true"
+            ref={wrapRef}
+            style={{
+                // a dimmer scene is a more transparent one over the black
+                // page, which is exactly the veil the live site needs.
+                opacity:
+                    Math.min(1, Math.max(0, intensity / 100)) *
+                    (1 - Math.min(100, Math.max(0, dim)) / 100),
+            }}
+        >
             <div className="bb-sky" />
             <div className="bb-parallax">
                 <svg

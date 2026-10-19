@@ -62,6 +62,93 @@ export type Contact = {
     url: string;
 };
 
+/**
+ * How the public site looks. Everything here is editable from /admin →
+ * appearance and applied on the next request, so the whole look is data —
+ * the defaults are exactly the look the site shipped with.
+ */
+export const LAYOUTS = ["classic", "modern", "portfolio"] as const;
+export type AppearanceLayout = (typeof LAYOUTS)[number];
+
+/** `card` = bio in a glass card, `none` = bio straight on the page, `two` = split in half. */
+export const CARD_STYLES = ["card", "none", "two"] as const;
+export type AppearanceCard = (typeof CARD_STYLES)[number];
+
+export const ALIGNMENTS = ["center", "left", "right", "spread"] as const;
+export type AppearanceAlign = (typeof ALIGNMENTS)[number];
+
+export const MOTION_SPEEDS = ["subtle", "normal", "bold"] as const;
+export type AppearanceSpeed = (typeof MOTION_SPEEDS)[number];
+
+export const HERO_HEIGHTS = ["full", "compact"] as const;
+export type AppearanceHeroHeight = (typeof HERO_HEIGHTS)[number];
+
+/** How the greeting and name arrive on screen. */
+export const TEXT_EFFECTS = ["none", "type", "scramble"] as const;
+export type AppearanceTextEffect = (typeof TEXT_EFFECTS)[number];
+
+/** How blocks enter as you scroll. */
+export const BUILD_STYLES = ["rise", "fade", "assemble", "lego"] as const;
+export type AppearanceBuildStyle = (typeof BUILD_STYLES)[number];
+
+export type Appearance = {
+    layout: AppearanceLayout;
+    card: AppearanceCard;
+    /** horizontal placement of the hero; phones are always centered */
+    align: AppearanceAlign;
+    /** 0 = solid card, 100 = fully see-through */
+    seeThrough: number;
+    /** card backdrop blur, px */
+    blur: number;
+    /** card corner roundness, px */
+    radius: number;
+    /** hairline border on the card */
+    border: boolean;
+    /** card inner padding, px */
+    cardPad: number;
+    /** drop shadow under the card */
+    cardShadow: boolean;
+    /** a row of brick studs along the top edge of the card */
+    studs: boolean;
+    /** content column width, px */
+    width: number;
+    /** extra vertical padding on every section, px */
+    spacing: number;
+    /** hero fills the viewport, or ends where its content ends */
+    heroHeight: AppearanceHeroHeight;
+    /** portrait size, px — 0 hides it */
+    avatar: number;
+    /** name size, % of the default */
+    nameScale: number;
+    /** name letter spacing, em (may be negative) */
+    nameTracking: number;
+    /** render the name in caps */
+    nameUpper: boolean;
+    /** typing / scramble animation for the greeting and name */
+    textEffect: AppearanceTextEffect;
+    /** characters per second for the text effect */
+    typeSpeed: number;
+    /** how blocks enter while scrolling */
+    buildStyle: AppearanceBuildStyle;
+    /** ms between each block in a staggered build */
+    stagger: number;
+    /** brick-assembly loading screen on the first load of a session */
+    legoIntro: boolean;
+    /** `#rrggbb` to override the live palette, `""` to follow the music */
+    accent: string;
+    /** how strongly the accent tints gradients, % */
+    accentStrength: number;
+    /** build the page in as you scroll */
+    motion: boolean;
+    motionSpeed: AppearanceSpeed;
+    /** animated blossom backdrop */
+    scene: boolean;
+    /** scene opacity, % */
+    sceneIntensity: number;
+    /** dark veil over the backdrop so text stays readable, % */
+    backdropDim: number;
+};
+
 export type SiteConfig = {
     name: string;
     age: number;
@@ -75,6 +162,39 @@ export type SiteConfig = {
     skills: Record<string, string[]>;
     biolinks: Biolink[];
     contacts: Contact[];
+    appearance: Appearance;
+};
+
+export const DEFAULT_APPEARANCE: Appearance = {
+    layout: "portfolio",
+    card: "card",
+    align: "left",
+    seeThrough: 100,
+    blur: 12,
+    radius: 8,
+    border: true,
+    cardPad: 16,
+    cardShadow: true,
+    studs: false,
+    width: 680,
+    spacing: 0,
+    heroHeight: "full",
+    avatar: 72,
+    nameScale: 100,
+    nameTracking: 0,
+    nameUpper: false,
+    textEffect: "none",
+    typeSpeed: 28,
+    buildStyle: "rise",
+    stagger: 65,
+    legoIntro: true,
+    accent: "",
+    accentStrength: 42,
+    motion: true,
+    motionSpeed: "normal",
+    scene: true,
+    sceneIntensity: 100,
+    backdropDim: 0,
 };
 
 export const DEFAULT_SITE: SiteConfig = {
@@ -230,6 +350,7 @@ export const DEFAULT_SITE: SiteConfig = {
             url: "https://www.roblox.com/users/profile?username=coldgrieff",
         },
     ],
+    appearance: DEFAULT_APPEARANCE,
 };
 
 /* ---------- normalization ---------- */
@@ -294,6 +415,93 @@ function timezone(value: unknown, fallback: string): string {
 function iconKey(value: unknown, fallback: NavIconKey): NavIconKey {
     const raw = text(value, "", 24) as NavIconKey;
     return NAV_ICON_KEYS.includes(raw) ? raw : fallback;
+}
+
+/** Numbers that are allowed fractions (letter spacing, em). */
+function clampNum(
+    value: unknown,
+    fallback: number,
+    min: number,
+    max: number,
+): number {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.round(Math.min(max, Math.max(min, n)) * 1000) / 1000;
+}
+
+function clampInt(
+    value: unknown,
+    fallback: number,
+    min: number,
+    max: number,
+): number {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+function oneOf<T extends string>(
+    value: unknown,
+    options: readonly T[],
+    fallback: T,
+): T {
+    return typeof value === "string" &&
+        (options as readonly string[]).includes(value)
+        ? (value as T)
+        : fallback;
+}
+
+/** `#rgb`, `#rrggbb`, or `""`/`transparent` to follow the live palette. */
+function hexColor(value: unknown, fallback: string): string {
+    const raw = text(value, "", 9).trim();
+    if (!raw || raw === "transparent") return raw ? "" : fallback;
+    const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(raw);
+    if (!match) return fallback;
+    const body = match[1].toLowerCase();
+    return `#${
+        body.length === 3
+            ? body
+                  .split("")
+                  .map((c) => c + c)
+                  .join("")
+            : body
+    }`;
+}
+
+function normalizeAppearance(value: unknown): Appearance {
+    const d = DEFAULT_APPEARANCE;
+    const r = obj(value);
+    return {
+        layout: oneOf(r.layout, LAYOUTS, d.layout),
+        card: oneOf(r.card, CARD_STYLES, d.card),
+        align: oneOf(r.align, ALIGNMENTS, d.align),
+        seeThrough: clampInt(r.seeThrough, d.seeThrough, 0, 100),
+        blur: clampInt(r.blur, d.blur, 0, 40),
+        radius: clampInt(r.radius, d.radius, 0, 32),
+        border: bool(r.border, d.border),
+        cardPad: clampInt(r.cardPad, d.cardPad, 0, 48),
+        cardShadow: bool(r.cardShadow, d.cardShadow),
+        studs: bool(r.studs, d.studs),
+        width: clampInt(r.width, d.width, 560, 1100),
+        spacing: clampInt(r.spacing, d.spacing, 0, 64),
+        heroHeight: oneOf(r.heroHeight, HERO_HEIGHTS, d.heroHeight),
+        avatar: clampInt(r.avatar, d.avatar, 0, 160),
+        nameScale: clampInt(r.nameScale, d.nameScale, 70, 170),
+        nameTracking: clampNum(r.nameTracking, d.nameTracking, -0.06, 0.12),
+        nameUpper: bool(r.nameUpper, d.nameUpper),
+        textEffect: oneOf(r.textEffect, TEXT_EFFECTS, d.textEffect),
+        typeSpeed: clampInt(r.typeSpeed, d.typeSpeed, 8, 90),
+        buildStyle: oneOf(r.buildStyle, BUILD_STYLES, d.buildStyle),
+        stagger: clampInt(r.stagger, d.stagger, 0, 160),
+        legoIntro: bool(r.legoIntro, d.legoIntro),
+        accent: hexColor(r.accent, d.accent),
+        accentStrength: clampInt(r.accentStrength, d.accentStrength, 0, 100),
+        motion: bool(r.motion, d.motion),
+        motionSpeed: oneOf(r.motionSpeed, MOTION_SPEEDS, d.motionSpeed),
+        scene: bool(r.scene, d.scene),
+        sceneIntensity: clampInt(r.sceneIntensity, d.sceneIntensity, 0, 100),
+        backdropDim: clampInt(r.backdropDim, d.backdropDim, 0, 90),
+    };
 }
 
 function normalizeSocials(value: unknown): Socials {
@@ -438,6 +646,7 @@ export function normalizeSite(input: unknown): SiteConfig {
         skills: normalizeSkills(r.skills),
         biolinks: normalizeBiolinks(r.biolinks),
         contacts: normalizeContacts(r.contacts),
+        appearance: normalizeAppearance(r.appearance),
     };
 }
 

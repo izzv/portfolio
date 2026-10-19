@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useExperience, type RGB } from "./ExperienceProvider";
 import { usePreview, trackKey } from "./PreviewProvider";
 import DiscordAvatar from "./DiscordAvatar";
+import TypeText from "./TypeText";
 import { useSite } from "./SiteProvider";
 
 type Line = { t: number; text: string };
@@ -41,6 +42,15 @@ export default function Header() {
     const discordUrl = discordId
         ? `https://discord.com/users/${discordId}`
         : "#";
+    // text effects are configured in /admin → appearance; the name starts once
+    // the greeting has finished typing.
+    const typeSpeed = site.appearance.typeSpeed;
+    const nameDelay =
+        site.appearance.textEffect === "none"
+            ? 0
+            : Math.round(
+                  Array.from(site.greeting).length * (1000 / typeSpeed),
+              ) + 120;
 
     const spotifySearch = (q: string) =>
         `https://open.spotify.com/search/${encodeURIComponent(q)}`;
@@ -208,11 +218,22 @@ export default function Header() {
                 <div className="flex items-center gap-2 text-white/70">
                     <span className="h-[1px] w-4 bg-white/50" />
                     <span className="text-xs font-light tracking-wider">
-                        {site.greeting}
+                        <TypeText
+                            text={site.greeting}
+                            mode={site.appearance.textEffect}
+                            speed={typeSpeed}
+                        />
                     </span>
                 </div>
-                <h1 className="text-2xl font-bold tracking-tight text-white">
-                    <span className="relative">{site.name}</span>
+                <h1 className="hero-name font-bold text-white">
+                    <span className="relative">
+                        <TypeText
+                            text={site.name}
+                            mode={site.appearance.textEffect}
+                            speed={typeSpeed}
+                            delay={nameDelay}
+                        />
+                    </span>
                 </h1>
                 <div className="flex items-center gap-1.5 -mt-1">
                     <a
@@ -228,7 +249,7 @@ export default function Header() {
             </div>
 
             {now?.name && (
-                <div className="absolute right-0 bottom-0 flex w-[60%] flex-col items-end gap-1.5">
+                <div className="hero-now absolute right-0 bottom-0 flex w-[60%] flex-col items-end gap-1.5">
                     {lines.length > 0 && (now.isPlaying || previewHere) && (
                         <div className="w-full overflow-hidden text-right">
                             <div key={idx} className="lyric-shift">

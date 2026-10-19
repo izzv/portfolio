@@ -4,6 +4,7 @@ import { useState } from "react";
 import { NAV_ICON_KEYS, navIcon } from "@/lib/navIcons";
 import {
     NAV_GROUPS,
+    type AppearanceLayout,
     type Biolink,
     type Contact,
     type NavItem,
@@ -12,12 +13,17 @@ import {
 import {
     AddButton,
     AreaField,
+    ChoiceCards,
+    ColorField,
     Field,
     IconButton,
     INPUT,
+    MoreOptions,
     Pill,
     RowTools,
     Section,
+    Segmented,
+    Slider,
     Stat,
     TextField,
     Toggle,
@@ -311,6 +317,455 @@ export function ProfilePanel({ draft, patch }: PanelProps) {
                         </span>{" "}
                         {draft.tagline || "your tagline goes here."}
                     </p>
+                </div>
+            </Section>
+        </div>
+    );
+}
+
+/* -------------------------------------------------------------- appearance */
+
+/**
+ * Tiny mock of the hero, drawn in the same order the real one renders.
+ *
+ * Styled inline on purpose: the admin sheet is a frozen utility snapshot, so a
+ * new Tailwind size class here would silently render nothing.
+ */
+function MockLine({
+    w,
+    h = 5,
+    alpha = 0.22,
+    round = 999,
+}: {
+    w: number | string;
+    h?: number;
+    alpha?: number;
+    round?: number;
+}) {
+    return (
+        <span
+            style={{
+                display: "block",
+                width: w,
+                height: h,
+                borderRadius: round,
+                background: `rgba(255, 255, 255, ${alpha})`,
+            }}
+        />
+    );
+}
+
+const LAYOUT_PREVIEW: Record<AppearanceLayout, React.ReactNode> = {
+    classic: (
+        <span
+            style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 5,
+                height: 56,
+            }}
+        >
+            <span
+                style={{
+                    display: "block",
+                    width: 18,
+                    height: 18,
+                    borderRadius: 999,
+                    background: "rgba(255, 255, 255, 0.45)",
+                }}
+            />
+            <MockLine w={48} alpha={0.3} />
+            <MockLine w={64} alpha={0.14} />
+        </span>
+    ),
+    modern: (
+        <span
+            style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 5,
+                height: 56,
+            }}
+        >
+            <MockLine w="100%" h={10} alpha={0.3} round={3} />
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span
+                    style={{
+                        display: "block",
+                        width: 18,
+                        height: 18,
+                        marginTop: -8,
+                        borderRadius: 999,
+                        background: "rgba(255, 255, 255, 0.45)",
+                    }}
+                />
+                <MockLine w={44} alpha={0.3} />
+            </span>
+            <MockLine w={60} alpha={0.14} />
+        </span>
+    ),
+    portfolio: (
+        <span
+            style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                gap: 5,
+                height: 56,
+            }}
+        >
+            <MockLine w={48} alpha={0.3} />
+            <MockLine w="100%" h={20} alpha={0.14} round={4} />
+            <MockLine w={64} alpha={0.14} />
+        </span>
+    ),
+};
+
+export function AppearancePanel({ draft, patch }: PanelProps) {
+    const look = draft.appearance;
+    const set = (partial: Partial<SiteConfig["appearance"]>) =>
+        patch({ appearance: { ...look, ...partial } });
+
+    return (
+        <div className="flex flex-col gap-4">
+            <Section
+                title="layout"
+                description="how the top of the home page is put together."
+                delay={0}
+                badge={<Pill>{look.layout}</Pill>}
+            >
+                <ChoiceCards
+                    label="preset"
+                    hint="home hero"
+                    value={look.layout}
+                    onChange={(layout) => set({ layout })}
+                    options={[
+                        {
+                            value: "classic",
+                            label: "Classic",
+                            blurb: "portrait, then your name",
+                            preview: LAYOUT_PREVIEW.classic,
+                        },
+                        {
+                            value: "modern",
+                            label: "Modern",
+                            blurb: "wide card with a banner",
+                            preview: LAYOUT_PREVIEW.modern,
+                        },
+                        {
+                            value: "portfolio",
+                            label: "Portfolio",
+                            blurb: "card, then sections to scroll",
+                            preview: LAYOUT_PREVIEW.portfolio,
+                        },
+                    ]}
+                />
+
+                <div className="mt-3 flex flex-col gap-3">
+                    <Segmented
+                        label="card style"
+                        value={look.card}
+                        onChange={(card) => set({ card })}
+                        options={[
+                            { value: "card", label: "Card" },
+                            { value: "none", label: "No card" },
+                            { value: "two", label: "Two columns" },
+                        ]}
+                    />
+                    <p className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] leading-relaxed text-white/40">
+                        on phones everything is centered — the position below
+                        only applies on wider screens.
+                    </p>
+                    <MoreOptions>
+                        <Segmented
+                            label="position on the page"
+                            value={look.align}
+                            onChange={(align) => set({ align })}
+                            options={[
+                                { value: "center", label: "Centered" },
+                                { value: "left", label: "Left side" },
+                                { value: "right", label: "Right side" },
+                                { value: "spread", label: "Spread" },
+                            ]}
+                        />
+                        <Slider
+                            label="content width"
+                            hint="every section follows it"
+                            value={look.width}
+                            min={560}
+                            max={1100}
+                            step={10}
+                            suffix="px"
+                            onChange={(width) => set({ width })}
+                        />
+                        <Slider
+                            label="section spacing"
+                            hint="extra padding per section"
+                            value={look.spacing}
+                            min={0}
+                            max={64}
+                            step={2}
+                            suffix="px"
+                            onChange={(spacing) => set({ spacing })}
+                        />
+                        <Segmented
+                            label="hero height"
+                            value={look.heroHeight}
+                            onChange={(heroHeight) => set({ heroHeight })}
+                            options={[
+                                { value: "full", label: "Full screen" },
+                                { value: "compact", label: "Compact" },
+                            ]}
+                        />
+                        <Slider
+                            label="portrait size"
+                            hint="0 hides the picture"
+                            value={look.avatar}
+                            min={0}
+                            max={160}
+                            step={2}
+                            suffix="px"
+                            onChange={(avatar) => set({ avatar })}
+                        />
+                    </MoreOptions>
+                </div>
+            </Section>
+
+            <Section
+                title="card look"
+                description="the glass the bio sits on."
+                delay={60}
+            >
+                <div className="flex flex-col gap-3">
+                    <Slider
+                        label="see-through"
+                        hint="100% = fully transparent"
+                        value={look.seeThrough}
+                        min={0}
+                        max={100}
+                        suffix="%"
+                        onChange={(seeThrough) => set({ seeThrough })}
+                    />
+                    <Slider
+                        label="blur behind"
+                        value={look.blur}
+                        min={0}
+                        max={40}
+                        suffix="px"
+                        onChange={(blur) => set({ blur })}
+                    />
+                    <Slider
+                        label="corner roundness"
+                        value={look.radius}
+                        min={0}
+                        max={32}
+                        suffix="px"
+                        onChange={(radius) => set({ radius })}
+                    />
+                    <Slider
+                        label="card padding"
+                        value={look.cardPad}
+                        min={0}
+                        max={48}
+                        step={2}
+                        suffix="px"
+                        onChange={(cardPad) => set({ cardPad })}
+                    />
+                    <Toggle
+                        label="border"
+                        hint="1px hairline around the card"
+                        checked={look.border}
+                        onChange={(border) => set({ border })}
+                    />
+                    <Toggle
+                        label="drop shadow"
+                        hint="lifts the card off the backdrop"
+                        checked={look.cardShadow}
+                        onChange={(cardShadow) => set({ cardShadow })}
+                    />
+                    <Toggle
+                        label="brick studs"
+                        hint="a row of LEGO studs along the top edge"
+                        checked={look.studs}
+                        onChange={(studs) => set({ studs })}
+                    />
+                </div>
+            </Section>
+
+            <Section
+                title="text"
+                description="the name on the card."
+                delay={90}
+            >
+                <div className="flex flex-col gap-3">
+                    <Slider
+                        label="name size"
+                        hint="% of the default"
+                        value={look.nameScale}
+                        min={70}
+                        max={170}
+                        step={2}
+                        suffix="%"
+                        onChange={(nameScale) => set({ nameScale })}
+                    />
+                    <Slider
+                        label="letter spacing"
+                        hint="negative = tighter"
+                        value={Math.round(look.nameTracking * 1000)}
+                        min={-60}
+                        max={120}
+                        step={5}
+                        format={(v) => `${(v / 1000).toFixed(3)}em`}
+                        onChange={(v) => set({ nameTracking: v / 1000 })}
+                    />
+                    <Toggle
+                        label="uppercase name"
+                        checked={look.nameUpper}
+                        onChange={(nameUpper) => set({ nameUpper })}
+                    />
+                    <Segmented
+                        label="arrival effect"
+                        hint="how the greeting and name appear"
+                        value={look.textEffect}
+                        onChange={(textEffect) => set({ textEffect })}
+                        options={[
+                            { value: "none", label: "Still" },
+                            { value: "type", label: "Typewriter" },
+                            { value: "scramble", label: "Decode" },
+                        ]}
+                    />
+                    {look.textEffect !== "none" && (
+                        <Slider
+                            label="typing speed"
+                            hint="characters per second"
+                            value={look.typeSpeed}
+                            min={8}
+                            max={90}
+                            step={2}
+                            suffix=" cps"
+                            onChange={(typeSpeed) => set({ typeSpeed })}
+                        />
+                    )}
+                </div>
+            </Section>
+
+            <Section
+                title="accent"
+                description="one colour that tints the rail, the gradients, the player and the backdrop."
+                delay={120}
+                badge={
+                    <Pill tone={look.accent ? "good" : "muted"}>
+                        {look.accent || "follows the music"}
+                    </Pill>
+                }
+            >
+                <ColorField
+                    label="accent colour"
+                    hint="hex"
+                    value={look.accent}
+                    placeholder="#7c6cff — leave empty to follow the track"
+                    onChange={(accent) => set({ accent })}
+                    swatches={[
+                        "#7c6cff",
+                        "#5eead4",
+                        "#f472b6",
+                        "#facc15",
+                        "#38bdf8",
+                        "#fb7185",
+                    ]}
+                />
+                <div className="mt-3 flex flex-col gap-3">
+                    <Slider
+                        label="accent strength"
+                        hint="how much colour the gradients carry"
+                        value={look.accentStrength}
+                        min={0}
+                        max={100}
+                        suffix="%"
+                        onChange={(accentStrength) => set({ accentStrength })}
+                    />
+                    <p className="text-[11px] leading-relaxed text-white/35">
+                        with no accent set, the colour follows whatever you are
+                        listening to.
+                    </p>
+                </div>
+            </Section>
+
+            <Section
+                title="motion & backdrop"
+                description="what moves. both respect the reader's reduced-motion setting."
+                delay={180}
+            >
+                <div className="flex flex-col gap-3">
+                    <Toggle
+                        label="build in as you scroll"
+                        hint="blocks assemble themselves as they enter the viewport"
+                        checked={look.motion}
+                        onChange={(motion) => set({ motion })}
+                    />
+                    <Segmented
+                        label="build speed"
+                        value={look.motionSpeed}
+                        onChange={(motionSpeed) => set({ motionSpeed })}
+                        options={[
+                            { value: "subtle", label: "Subtle" },
+                            { value: "normal", label: "Normal" },
+                            { value: "bold", label: "Bold" },
+                        ]}
+                    />
+                    <Segmented
+                        label="build style"
+                        hint="how each block enters"
+                        value={look.buildStyle}
+                        onChange={(buildStyle) => set({ buildStyle })}
+                        options={[
+                            { value: "rise", label: "Rise" },
+                            { value: "fade", label: "Fade" },
+                            { value: "assemble", label: "Assemble" },
+                            { value: "lego", label: "Lego" },
+                        ]}
+                    />
+                    <Toggle
+                        label="brick loading screen"
+                        hint="bricks stack up once per tab session, before the page shows"
+                        checked={look.legoIntro}
+                        onChange={(legoIntro) => set({ legoIntro })}
+                    />
+                    <Slider
+                        label="stagger"
+                        hint="gap between blocks in a row"
+                        value={look.stagger}
+                        min={0}
+                        max={160}
+                        step={5}
+                        suffix="ms"
+                        onChange={(stagger) => set({ stagger })}
+                    />
+                    <Toggle
+                        label="animated backdrop"
+                        hint="the blossom scene behind everything"
+                        checked={look.scene}
+                        onChange={(scene) => set({ scene })}
+                    />
+                    <Slider
+                        label="backdrop intensity"
+                        value={look.sceneIntensity}
+                        min={0}
+                        max={100}
+                        suffix="%"
+                        onChange={(sceneIntensity) => set({ sceneIntensity })}
+                    />
+                    <Slider
+                        label="backdrop dim"
+                        hint="darken the scene behind the text"
+                        value={look.backdropDim}
+                        min={0}
+                        max={90}
+                        suffix="%"
+                        onChange={(backdropDim) => set({ backdropDim })}
+                    />
                 </div>
             </Section>
         </div>

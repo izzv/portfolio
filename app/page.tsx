@@ -12,6 +12,7 @@ import { getProjects } from "@/lib/projectsStore";
 import { getGuestbook } from "@/lib/guestbookStore";
 import { approvedEntries } from "@/lib/guestbook";
 import { siteUrl } from "@/lib/siteUrl";
+import { appearanceVars } from "@/lib/appearance";
 
 export const dynamic = "force-dynamic";
 
@@ -45,13 +46,24 @@ export default async function HomePage() {
         ].filter((u) => typeof u === "string" && u.length > 8),
     };
 
+    const look = site.appearance;
+
     return (
         <>
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(person) }}
             />
-            <main className="w-full">
+            {/* one inline style carries every appearance setting to the CSS */}
+            <main
+                className="site-shell"
+                data-layout={look.layout}
+                data-card={look.card}
+                data-align={look.align}
+                data-name-upper={look.nameUpper ? "on" : "off"}
+                data-studs={look.studs ? "on" : "off"}
+                style={appearanceVars(look) as React.CSSProperties}
+            >
                 <HeroSection site={site} />
                 <ProjectsSection
                     projects={projects}

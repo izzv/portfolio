@@ -12,9 +12,13 @@ import "./guestbook.css";
 import "./commissions.css";
 import "./nav.css";
 import "./build.css";
+import "./appearance.css";
+import "./lego.css";
 import ExperienceProvider from "@/components/ExperienceProvider";
 import PreviewProvider from "@/components/PreviewProvider";
 import BlossomBackground from "@/components/BlossomBackground";
+import LegoLoader from "@/components/LegoLoader";
+import { accentRgb } from "@/lib/appearance";
 import CoverBackdrop from "@/components/CoverBackdrop";
 import CanvasBackdrop from "@/components/CanvasBackdrop";
 import DynamicIsland from "@/components/DynamicIsland";
@@ -95,22 +99,61 @@ export default async function RootLayout({
     children: React.ReactNode;
 }) {
     const [site, projects] = await Promise.all([getSite(), getProjects()]);
+    const look = site.appearance;
+    const accent = accentRgb(look.accent);
+    const paragraph = accent ? accent.join(", ") : "";
     return (
-        <html lang="en" className="dark font-sans hero_YXskvN9J">
+        <html
+            lang="en"
+            className="dark font-sans hero_YXskvN9J"
+            data-build={look.buildStyle}
+        >
             <body className="antialiased bg-black text-white [color-scheme:dark]">
-                {/* Gate the build-on-scroll hidden state before first paint, and
-                    only when the reader has not asked for reduced motion. The
-                    timer is a failsafe so a broken bundle can never leave the
-                    page blank. */}
-                <script
-                    dangerouslySetInnerHTML={{
-                        __html: `try{if(!matchMedia("(prefers-reduced-motion: reduce)").matches){document.documentElement.dataset.reveal="on";setTimeout(function(){if(!document.querySelector("[data-reveal].is-built")){document.documentElement.removeAttribute("data-reveal")}},5000)}}catch(e){}`,
-                    }}
-                />
+                {/* Gate the build-on-scroll hidden state before first paint. It
+                    is skipped entirely when the animation is switched off in
+                    /admin → appearance, or when the reader asked for reduced
+                    motion; the timer is a failsafe so a broken bundle can never
+                    leave the page blank. */}
+                {look.motion && (
+                    <script
+                        dangerouslySetInnerHTML={{
+                            __html: `try{if(!matchMedia("(prefers-reduced-motion: reduce)").matches){document.documentElement.dataset.reveal="on";setTimeout(function(){if(!document.querySelector("[data-reveal].is-built")){document.documentElement.removeAttribute("data-reveal")}},5000)}}catch(e){}`,
+                        }}
+                    />
+                )}
+                {/* The LEGO intro plays once per tab session, before first paint,
+                    and only when it is switched on and motion is welcome. The
+                    timer is a failsafe so the veil can never get stuck. */}
+                {look.legoIntro && (
+                    <script
+                        dangerouslySetInnerHTML={{
+                            __html: `try{if(!matchMedia("(prefers-reduced-motion: reduce)").matches&&!sessionStorage.getItem("lego-intro")){document.documentElement.dataset.lego="on";sessionStorage.setItem("lego-intro","1");setTimeout(function(){document.documentElement.removeAttribute("data-lego")},2600)}}catch(e){}`,
+                        }}
+                    />
+                )}
+                {look.legoIntro && (
+                    <LegoLoader
+                        glow={
+                            accent
+                                ? `rgba(${paragraph}, 0.30)`
+                                : "rgba(255, 255, 255, 0.12)"
+                        }
+                        brick={
+                            accent
+                                ? `rgba(${paragraph}, 0.55)`
+                                : "rgba(255, 255, 255, 0.26)"
+                        }
+                    />
+                )}
                 <SiteProvider config={site}>
-                    <ExperienceProvider>
+                    <ExperienceProvider accent={look.accent}>
                         <PreviewProvider>
-                            <BlossomBackground />
+                            {look.scene && (
+                                <BlossomBackground
+                                    intensity={look.sceneIntensity}
+                                    dim={look.backdropDim}
+                                />
+                            )}
                             <CoverBackdrop />
                             <CanvasBackdrop />
                             <Nav />

@@ -129,9 +129,10 @@ when nothing non-featured exists.
 ## Site editor — `/admin`
 
 The whole site is data, not source. `/admin` is a password-gated control room
-with nine tabs: **overview** (views, visitors, counts, quick actions),
+with ten tabs: **overview** (views, visitors, counts, quick actions),
 **profile** (name, age, greeting, role, tagline, timezone, live hero preview),
-**socials** (discord id + handle, github, last.fm, telegram, roblox),
+**appearance** (layout, card, typography, text effects, accent, motion — see
+below), **socials** (discord id + handle, github, last.fm, telegram, roblox),
 **links** (biolinks and contact cards, add/remove/reorder),
 **skills** (groups and pills), **nav** (label, href, icon preset, group,
 visibility, order), **commissions** (toggle, price, accepted coins, sponsor,
@@ -172,6 +173,48 @@ curl -s -b /tmp/cj localhost:3000/api/admin/site
 `GET`/`PUT /api/admin/site` returns `401` without a session, `403` for a write
 from another origin, `413` above 256 KB.
 
+## Appearance — `/admin` → appearance
+
+The look is data too. Every control writes an `appearance` object into the same
+`site.json`, and `lib/appearance.ts` turns it into CSS custom properties on the
+home shell (plus `data-*` attributes), so the whole look is one inline style and
+one CSS file rather than a prop threaded through every component.
+
+- **layout** — `classic` (portrait, then the name), `modern` (a wide card with a
+  banner and the picture beside the name) or `portfolio` (name + card, then the
+  sections), a card style (`card` / `none` / `two columns`), and, under *more
+  options*, the horizontal position, content width, per-section spacing, hero
+  height and portrait size (0 hides it).
+- **card look** — see-through (`100%` = glass you can read through), backdrop
+  blur, corner roundness, inner padding, the hairline border and the drop
+  shadow.
+- **text** — name size, letter spacing, uppercase, plus the **arrival effect**:
+  `typewriter` types the greeting and then the name behind a caret,
+  `decode` settles scrambled glyphs into the real text (`components/TypeText.tsx`).
+  Typing speed is characters per second; both effects honour
+  `prefers-reduced-motion` and keep the full string in the accessibility tree.
+- **accent** — a hex colour that overrides the palette picked from the current
+  track (empty = follow the music), and how strongly it tints the gradients.
+- **motion & backdrop** — build-on-scroll on/off, speed, **build style**
+  (`rise`, `fade`, `assemble`, `lego`), stagger, a LEGO brick loading screen,
+  the animated blossom scene, its intensity and a dim veil for readability.
+- **LEGO details** — `brick studs` adds a row of studs to the top edge of the
+  hero card, and `brick loading screen` plays `components/LegoLoader.tsx`: three
+  rows of bricks drop in and snap together, then the veil lifts. It is pure
+  decoration (`aria-hidden`, no pointer events), runs once per tab session via
+  `sessionStorage`, is gated on `html[data-lego="on"]` before first paint, and
+  never appears with `prefers-reduced-motion`. The inline failsafe removes the
+  gate after 2.6 s, so a failed bundle cannot leave a visitor behind an overlay.
+  `app/lego.css` holds both the loader and the `[data-build="lego"]` entrance,
+  which drops each block in from above with a springy snap.
+
+The defaults in `lib/siteConfig.ts` are exactly the look the site shipped with,
+so an old `site.json` upgrades cleanly: `normalizeSite()` clamps every number and
+falls back for every enum. The hero markup lives in
+`components/sections/HeroSection.tsx`, the CSS variables in `lib/appearance.ts`
+and their rules in `app/appearance.css`; nav width, section width and the
+commission page follow `--shell-width` from the same file.
+
 ## One scrolling page
 
 `app/page.tsx` composes the whole public site: `components/sections/*` renders
@@ -204,8 +247,16 @@ transition off-screen at load:
   viewport. Only `opacity`, `transform` and `filter` animate, so nothing reflows
   and section heights/offsets are unchanged.
 - Blocks stagger: the component assigns `--reveal-i` per element in DOM order
-  within each parent, and `app/build.css` turns that into a 65 ms step, so a row
-  of pills or cards builds left to right.
+  within each parent, and `app/build.css` turns that into `--reveal-stagger`
+  (65 ms by default, editable in appearance), so a row of pills or cards builds
+  left to right.
+- Four build styles share that machinery, chosen in `/admin` → appearance:
+  `rise` (the default: up, unblur, fade), `fade` (opacity only), `assemble`
+  (a clip-path cut closes as the block is built) and `lego` (a brick dropped
+  from above with a springy overshoot), keyed off `html[data-build]`.
+  The hero's greeting and name can type themselves in at the same time
+  (`components/TypeText.tsx`), which is what makes the page look like it is
+  being written while you watch.
 - **The hidden half only exists behind a JS gate.** The layout sets
   `html[data-reveal="on"]` before first paint, and only when the reader has not
   asked for reduced motion; the CSS keys every hiding rule off that attribute.
