@@ -4,13 +4,17 @@ import { useEffect, useState } from "react";
 import { useExperience } from "./ExperienceProvider";
 
 /**
- * The album art of the track on the now-playing widget, blown up and blurred
+ * The album art of the track that is playing right now, blown up and blurred
  * into the page background.
+ *
+ * This is a playback effect, not a permanent layer: it exists while a track is
+ * playing and disappears again when playback stops, leaving the default blossom
+ * scene. A paused track counts as stopped, so the site falls back to the default
+ * background instead of freezing on the last cover.
  *
  * Two layers are kept so a track change crossfades instead of flashing; the
  * image is fetched through /api/img because Last.fm's CDN sends
- * Cross-Origin-Resource-Policy: same-origin. With no track the component
- * renders nothing and the blossom scene stays exactly as it was.
+ * Cross-Origin-Resource-Policy: same-origin.
  */
 
 const proxied = (url: string) =>
@@ -20,7 +24,8 @@ const proxied = (url: string) =>
 
 export default function CoverBackdrop() {
     const { now } = useExperience();
-    const src = now?.image ? proxied(now.image) : "";
+    const playing = !!now?.isPlaying && !!now?.image;
+    const src = playing ? proxied(now!.image) : "";
     const [layers, setLayers] = useState<string[]>([]);
 
     useEffect(() => {
@@ -30,7 +35,9 @@ export default function CoverBackdrop() {
         );
     }, [src]);
 
-    if (!layers.length) return null;
+    // Gated on `src`, not on the kept layers: the moment playback stops this
+    // returns null and the default background is what the visitor sees.
+    if (!src || !layers.length) return null;
 
     return (
         <div className="cover-backdrop" aria-hidden="true">

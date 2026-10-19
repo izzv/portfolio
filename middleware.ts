@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { CANONICAL_HOST, isAliasHost } from "@/lib/domains";
 
 const COOKIE = "ryan_admin";
 
@@ -18,8 +19,21 @@ function hasSessionCookie(req: NextRequest): boolean {
 }
 
 export function middleware(req: NextRequest) {
+    // The site answers on several domains; only one may be indexed, so every
+    // alias host permanently redirects there with the path and query intact.
+    if (isAliasHost(req.headers.get("host"))) {
+        const target = new URL(
+            `${req.nextUrl.pathname}${req.nextUrl.search}`,
+            `https://${CANONICAL_HOST}`,
+        );
+        return NextResponse.redirect(target, 308);
+    }
+
     const { pathname } = req.nextUrl;
+    const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
     const isApi = pathname.startsWith("/api/admin");
+    if (!isAdmin && !isApi) return NextResponse.next();
+
     const isPublicApi =
         pathname === "/api/admin/login" || pathname === "/api/admin/logout";
 
@@ -47,5 +61,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/admin/:path*", "/api/admin/:path*"],
+    // Everything except the build output and the icon, so alias domains are
+    // caught before any page is rendered.
+    matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

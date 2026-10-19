@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useExperience, type RGB } from "./ExperienceProvider";
 import { useSite } from "./SiteProvider";
 import { navIcon } from "@/lib/navIcons";
+import { NAV_GROUPS, type NavGroup } from "@/lib/siteConfig";
 
 function tint(
     [r, g, b]: RGB,
@@ -21,12 +22,25 @@ export default function Nav() {
     const pathname = usePathname();
     const { primary } = useExperience();
     const { nav } = useSite();
+
+    const groupRank = (g: NavGroup) => {
+        const i = NAV_GROUPS.indexOf(g);
+        return i === -1 ? NAV_GROUPS.length : i;
+    };
+    // Groups stay contiguous and in a fixed order (core → work → social); the
+    // order picked in /admin is kept inside each group.
     const ITEMS = nav
         .filter((it) => !it.hidden)
-        .map((it) => {
+        .map((it, i) => ({ it, i }))
+        .sort(
+            (a, b) =>
+                groupRank(a.it.group) - groupRank(b.it.group) || a.i - b.i,
+        )
+        .map(({ it }) => {
             const icon = navIcon(it.icon);
             return { ...it, viewBox: icon.viewBox, path: icon.path };
         });
+
     const navBg = tint(primary, 7, 0.2, 0.72);
     const navBorder = tint(primary, 36, 0.32, 0.16);
     const tipBg = tint(primary, 11, 0.26, 0.94);
@@ -104,50 +118,60 @@ export default function Nav() {
                 />
                 {ITEMS.map((it, i) => {
                     const active = i === activeIndex;
+                    const startsGroup =
+                        i > 0 && ITEMS[i - 1].group !== it.group;
                     return (
-                        <li key={it.href} className="nav-item relative">
-                            <Link
-                                ref={(el) => {
-                                    itemRefs.current[i] = el;
-                                }}
-                                aria-current={active ? "page" : undefined}
-                                aria-label={it.label}
-                                href={it.href}
-                                className={
-                                    "relative z-10 flex h-8 items-center justify-center rounded-md px-2.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/30 sm:h-8 sm:w-8 sm:px-0 " +
-                                    (active
-                                        ? ""
-                                        : "text-white/45 hover:text-white/85")
-                                }
-                            >
-                                <span
-                                    className="relative z-10 inline-flex items-center transition-colors duration-300"
-                                    style={
-                                        active
-                                            ? { color: activeInk }
-                                            : undefined
+                        <Fragment key={it.href}>
+                            {startsGroup && (
+                                <li
+                                    className="nav-sep"
+                                    aria-hidden="true"
+                                />
+                            )}
+                            <li className="nav-item relative">
+                                <Link
+                                    ref={(el) => {
+                                        itemRefs.current[i] = el;
+                                    }}
+                                    aria-current={active ? "page" : undefined}
+                                    aria-label={it.label}
+                                    href={it.href}
+                                    className={
+                                        "relative z-10 flex h-8 items-center justify-center rounded-md px-2.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/30 sm:h-8 sm:w-8 sm:px-0 " +
+                                        (active
+                                            ? ""
+                                            : "text-white/45 hover:text-white/85")
                                     }
                                 >
-                                    <svg
-                                        stroke="currentColor"
-                                        fill="currentColor"
-                                        strokeWidth="0"
-                                        viewBox={it.viewBox}
-                                        style={{
-                                            width: 16,
-                                            height: 16,
-                                            flexShrink: 0,
-                                        }}
-                                        xmlns="http://www.w3.org/2000/svg"
+                                    <span
+                                        className="relative z-10 inline-flex items-center transition-colors duration-300"
+                                        style={
+                                            active
+                                                ? { color: activeInk }
+                                                : undefined
+                                        }
                                     >
-                                        <path d={it.path} />
-                                    </svg>
+                                        <svg
+                                            stroke="currentColor"
+                                            fill="currentColor"
+                                            strokeWidth="0"
+                                            viewBox={it.viewBox}
+                                            style={{
+                                                width: 16,
+                                                height: 16,
+                                                flexShrink: 0,
+                                            }}
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path d={it.path} />
+                                        </svg>
+                                    </span>
+                                </Link>
+                                <span className="nav-tip" role="tooltip">
+                                    {it.label}
                                 </span>
-                            </Link>
-                            <span className="nav-tip" role="tooltip">
-                                {it.label}
-                            </span>
-                        </li>
+                            </li>
+                        </Fragment>
                     );
                 })}
             </ul>

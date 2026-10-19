@@ -24,3 +24,27 @@
         transform: translateY(-50%);
     }
 }
+
+/* ------------------------------------------------------------------
+   group divider — the rail reads as core / work / social
+
+   The bar is horizontal on phones and vertical from 640px, so the rule
+   flips its axis with it.
+------------------------------------------------------------------- */
+
+.nav-sep {
+    flex: 0 0 auto;
+    align-self: stretch;
+    width: 1px;
+    margin: 4px 3px;
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@media (min-width: 640px) {
+    .nav-sep {
+        width: auto;
+        height: 1px;
+        margin: 3px 4px;
+    }
+}

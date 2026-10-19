@@ -8,7 +8,10 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
     const site = await getSite();
-    return { title: `projects — ${site.name}` };
+    return {
+        title: `projects — ${site.name}`,
+        alternates: { canonical: "/projects" },
+    };
 }
 
 const Arrow = ({

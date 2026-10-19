@@ -11,6 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
         title: `guestbook — ${site.name}`,
         description: `leave a note for ${site.name}.`,
+        alternates: { canonical: "/guestbook" },
     };
 }
 

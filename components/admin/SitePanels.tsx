@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { NAV_ICON_KEYS, navIcon } from "@/lib/navIcons";
-import type { Biolink, Contact, NavItem, SiteConfig } from "@/lib/siteConfig";
+import {
+    NAV_GROUPS,
+    type Biolink,
+    type Contact,
+    type NavItem,
+    type SiteConfig,
+} from "@/lib/siteConfig";
 import {
     AddButton,
     AreaField,
@@ -822,7 +828,7 @@ export function NavPanel({ draft, patch }: PanelProps) {
         <div className="flex flex-col gap-4">
             <Section
                 title="navigation"
-                description="the floating rail. hidden items stay saved but disappear from the site."
+                description="the floating rail. items are drawn in group order (core → work → social) with a divider between groups; hidden items stay saved but disappear from the site."
                 delay={0}
                 badge={<Pill>{draft.nav.filter((n) => !n.hidden).length} visible</Pill>}
             >
@@ -859,6 +865,24 @@ export function NavPanel({ draft, patch }: PanelProps) {
                                                 {NAV_ICON_KEYS.map((key) => (
                                                     <option key={key} value={key}>
                                                         {key}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </Field>
+                                        <Field label="group">
+                                            <select
+                                                value={item.group}
+                                                onChange={(e) =>
+                                                    update(i, {
+                                                        group: e.target
+                                                            .value as NavItem["group"],
+                                                    })
+                                                }
+                                                className={`${INPUT} py-1`}
+                                            >
+                                                {NAV_GROUPS.map((g) => (
+                                                    <option key={g} value={g}>
+                                                        {g}
                                                     </option>
                                                 ))}
                                             </select>
@@ -929,6 +953,7 @@ export function NavPanel({ draft, patch }: PanelProps) {
                                     label: "New",
                                     href: "/",
                                     icon: "external",
+                                    group: "core",
                                     hidden: false,
                                 },
                             ])

@@ -10,6 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
         title: `biolinks — ${site.name}`,
         description: site.tagline,
+        alternates: { canonical: "/biolinks" },
     };
 }
 

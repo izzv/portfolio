@@ -9,6 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
         title: `commissions — ${site.name}`,
         description: `work with ${site.name}. crypto only.`,
+        alternates: { canonical: "/commissions" },
     };
 }
 

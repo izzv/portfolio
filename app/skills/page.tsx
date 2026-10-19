@@ -6,7 +6,10 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
     const site = await getSite();
-    return { title: `skills — ${site.name}` };
+    return {
+        title: `skills — ${site.name}`,
+        alternates: { canonical: "/skills" },
+    };
 }
 
 const ICON_NAME: Record<string, string> = {

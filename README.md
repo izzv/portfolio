@@ -33,7 +33,9 @@ page follows whatever the config says.
 | `/admin` | password-gated site editor: profile, socials, links, skills, nav, commissions, guestbook, projects, dashboard | `site.json` / `guestbook.json` / `projects.json` |
 
 Each page still has its own `<title>` (`music — ryan`, `projects — ryan`, …) from
-`site.name`; the root layout only supplies the bare name.
+`site.name`; the root layout supplies the default `name — role` title plus the
+social/SEO metadata described below. Anything unmatched renders `app/not-found.tsx`
+with a real 404 status.
 
 ## Where identity lives
 
@@ -130,8 +132,9 @@ with nine tabs: **overview** (views, visitors, counts, quick actions),
 **profile** (name, age, greeting, role, tagline, timezone, live hero preview),
 **socials** (discord id + handle, github, last.fm, telegram, roblox),
 **links** (biolinks and contact cards, add/remove/reorder),
-**skills** (groups and pills), **nav** (label, href, icon preset, visibility,
-order), **commissions** (toggle, price, accepted coins, sponsor, preview),
+**skills** (groups and pills), **nav** (label, href, icon preset, group,
+visibility, order), **commissions** (toggle, price, accepted coins, sponsor,
+preview),
 **guestbook** (approve / delete notes) and **projects** (the existing editor,
 embedded).
 
@@ -318,6 +321,11 @@ Confirmed:
 - **Last.fm account** → `.env.local` (`LASTFM_USER`) plus `socials.lastfm`.
 - **Timezone** → profile tab (used by `LocalTime`).
 - **Navigation** → nav tab; icons come from the presets in `lib/navIcons.ts`.
+  Every item also has a **group** (`core`, `work`, `social`). The rail always
+  draws groups in that order with a hairline between them, and keeps the admin
+  order inside each group — so the rail reads: home/projects/music, then
+  commissions/skills, then guestbook/biolinks/contact. Saved configs from
+  before groups existed are classified by their `href`, not their position.
 
 ## Background
 
@@ -331,7 +339,10 @@ sharp at any viewport size and the layered groups can move independently.
 - `filter: grayscale(1) brightness(0.92) contrast(1.12)` plus a radial scrim keep
   white text readable over the bright blossom areas
 - `.bb-tint` reuses the album palette from `ExperienceProvider`, so the old
-  album-reactive backdrop still tints the scene via `mix-blend-mode: soft-light`
+  album-reactive backdrop still tints the scene via `mix-blend-mode: soft-light`.
+  The palette follows playback the same way the cover backdrop does — the
+  playing track's cover while a song is on, the avatar (and its fallback) when
+  it isn't
 
 To use a photograph instead, drop it in `public/media/` and swap the `<svg>` for
 an `<img>` — the petals, sway and parallax layers wrap it unchanged.
@@ -396,7 +407,10 @@ runtime, so utility classes alone would not animate anything):
 - album backdrop — `components/CoverBackdrop.tsx` blurs the now-playing cover
   into two crossfading full-screen layers under the content (`.cover-*` in
   `app/cover.css`); the image goes through `/api/img` because Last.fm's CDN
-  blocks cross-origin reads, and nothing renders when there is no track
+  blocks cross-origin reads. It is a playback effect, not a permanent layer: it
+  paints only while a track is playing, and the moment playback stops (including
+  a pause, or a track the API can't see) the default blossom scene is back. No
+  artwork is remembered between visits, so there is nothing to flash on load
 
 Animations use `animation-fill-mode: backwards` so no transform lingers to
 become a containing block for `position: fixed` children, and everything is
@@ -404,6 +418,51 @@ disabled under `prefers-reduced-motion: reduce` (verified in Chrome: reported
 `animationName` is `pageRise` normally and `none` with reduced motion). The
 background scene is included: sway/breathe/glow stop and the petals are
 `display: none` under reduced motion, verified across all six routes.
+
+## Domains
+
+The site is reachable on several domains, but only one is canonical:
+
+| Host | Behaviour |
+| --- | --- |
+| `ryan.ong` | canonical — sitemap, Open Graph, JSON-LD, share links |
+| `www.ryan.ong` | 308 → `https://ryan.ong` |
+| `ryandev.lol` | 308 → `https://ryan.ong` |
+| `ryanbuttlord.fun` | 308 → `https://ryan.ong` |
+| `ryanbuttlord.lol` | not registered in DNS — no site |
+
+The list lives in `lib/domains.ts` (`CANONICAL_HOST` + `ALIAS_HOSTS`), and
+`middleware.ts` redirects any alias host before a page renders, keeping the
+path and query string. Of the `www.` entries only `www.ryandev.lol` currently
+resolves in DNS; the other two are there so the redirect is already in place if
+the records are ever added. Adding a domain is: add it to `ALIAS_HOSTS`, point its
+DNS at Vercel, then add it under **Vercel → Settings → Domains**. Nothing else
+changes, and the canonical output stays on `ryan.ong`.
+
+## Discovery (SEO)
+
+- `app/layout.tsx` sets `metadataBase` from `lib/siteUrl.ts`, a default title
+  (`name — role`), a description built from the tagline, keywords from the
+  skills list, Open Graph (`website`, 1200×630 `og.png`) and a
+  `summary_large_image` Twitter card.
+- `lib/siteUrl.ts` returns `NEXT_PUBLIC_SITE_URL` when set, otherwise
+  `https://ryan.ong` from `lib/domains.ts` — everything absolute (sitemap, OG
+  URLs, JSON-LD) is built from it, and it deliberately ignores the per-deploy
+  Vercel host so previews never leak into indexed metadata.
+- every page sets `alternates.canonical` for its own path, so a host that has
+  not been added to Vercel yet still points search engines at `ryan.ong`.
+- `app/sitemap.ts` lists the eight public routes with priorities and change
+  frequencies; `app/robots.ts` points at it and disallows `/admin` + `/api/`.
+  `/admin` also sends `noindex, nofollow` in its own metadata.
+- `app/page.tsx` emits JSON-LD `Person` (name, role, tagline, skills, socials)
+  from the site config, so search results can carry the profile.
+- `public/og.png` is a **static** 1200×630 card (`name · role`, tagline,
+  greeting, section links). It is baked, not generated per request — `next/og`
+  crashes on Windows in Next 14.2 (`@vercel/og` resolves its bundled font to a
+  broken `file:` URL), so a prerendered PNG keeps the route working everywhere.
+  If the name/tagline change, re-render the card.
+- `app/icon.svg` is the favicon the metadata previously pointed at (`/favicon.svg`
+  did not exist and 404'd).
 
 ## Deployment (Vercel)
 
@@ -446,7 +505,8 @@ running in `temporary` mode, and a failed blob write returns the real reason
 `LASTFM_USER`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`,
 `SPOTIFY_REFRESH_TOKEN`, `SP_DC_COOKIE`, plus `ADMIN_PASSWORD` and
 `ADMIN_SECRET` for `/admin`, and optionally
-`BLOB_READ_WRITE_TOKEN` for durable site, guestbook and project saves. Both admin values are required — without
+`BLOB_READ_WRITE_TOKEN` for durable site, guestbook and project saves and
+`NEXT_PUBLIC_SITE_URL` for absolute links (sitemap, Open Graph, JSON-LD). Both admin values are required — without
 `ADMIN_PASSWORD` the login page explains the missing config instead of accepting
 a blank password, and `ADMIN_SECRET` (falls back to `VIEWS_SECRET`) is what
 signs the session cookie.

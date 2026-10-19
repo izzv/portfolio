@@ -10,7 +10,10 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
     const site = await getSite();
-    return { title: `contact — ${site.name}` };
+    return {
+        title: `contact — ${site.name}`,
+        alternates: { canonical: "/contact" },
+    };
 }
 
 const OPEN_PATH =

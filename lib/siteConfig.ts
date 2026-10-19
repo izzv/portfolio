@@ -18,10 +18,20 @@ export type Socials = {
     robloxHandle: string;
 };
 
+/**
+ * Nav items are sorted into three runs in the rail: what the site is (core),
+ * what it sells (work), and where to talk to you (social). A hairline is drawn
+ * where the group changes, so the rail reads as sections instead of eight
+ * equal dots.
+ */
+export const NAV_GROUPS = ["core", "work", "social"] as const;
+export type NavGroup = (typeof NAV_GROUPS)[number];
+
 export type NavItem = {
     label: string;
     href: string;
     icon: NavIconKey;
+    group: NavGroup;
     hidden: boolean;
 };
 
@@ -95,14 +105,50 @@ export const DEFAULT_SITE: SiteConfig = {
         coins: "BTC, ETH, USDT, SOL, LTC",
     },
     nav: [
-        { label: "Home", href: "/", icon: "home", hidden: false },
-        { label: "Music", href: "/music", icon: "music", hidden: false },
-        { label: "Projects", href: "/projects", icon: "projects", hidden: false },
-        { label: "Commissions", href: "/commissions", icon: "coin", hidden: false },
-        { label: "Skills", href: "/skills", icon: "skills", hidden: false },
-        { label: "Biolinks", href: "/biolinks", icon: "links", hidden: false },
-        { label: "Guestbook", href: "/guestbook", icon: "guestbook", hidden: false },
-        { label: "Contact", href: "/contact", icon: "contact", hidden: false },
+        { label: "Home", href: "/", icon: "home", group: "core", hidden: false },
+        {
+            label: "Projects",
+            href: "/projects",
+            icon: "projects",
+            group: "core",
+            hidden: false,
+        },
+        { label: "Music", href: "/music", icon: "music", group: "core", hidden: false },
+        {
+            label: "Commissions",
+            href: "/commissions",
+            icon: "coin",
+            group: "work",
+            hidden: false,
+        },
+        {
+            label: "Skills",
+            href: "/skills",
+            icon: "skills",
+            group: "work",
+            hidden: false,
+        },
+        {
+            label: "Guestbook",
+            href: "/guestbook",
+            icon: "guestbook",
+            group: "social",
+            hidden: false,
+        },
+        {
+            label: "Biolinks",
+            href: "/biolinks",
+            icon: "links",
+            group: "social",
+            hidden: false,
+        },
+        {
+            label: "Contact",
+            href: "/contact",
+            icon: "contact",
+            group: "social",
+            hidden: false,
+        },
     ],
     skills: {
         Languages: ["TypeScript", "JavaScript", "Python"],
@@ -267,6 +313,14 @@ function normalizeSocials(value: unknown): Socials {
     };
 }
 
+function navGroup(value: unknown, href: string): NavGroup {
+    if (typeof value === "string" && (NAV_GROUPS as readonly string[]).includes(value))
+        return value as NavGroup;
+    // Saved configs predate groups: recover one from the item's known href
+    // rather than its index, so a reordered rail still groups correctly.
+    return DEFAULT_SITE.nav.find((n) => n.href === href)?.group ?? "core";
+}
+
 function normalizeNav(value: unknown): NavItem[] {
     if (!Array.isArray(value)) return DEFAULT_SITE.nav.map((n) => ({ ...n }));
     return value.slice(0, MAX_NAV).flatMap((raw, i) => {
@@ -280,6 +334,7 @@ function normalizeNav(value: unknown): NavItem[] {
                 label,
                 href,
                 icon: iconKey(r.icon, fallback?.icon ?? "sparkles"),
+                group: navGroup(r.group, href),
                 hidden: bool(r.hidden, false),
             },
         ];

@@ -1,13 +1,42 @@
+import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Pills from "@/components/Pills";
 import { getSite } from "@/lib/siteStore";
+import { siteUrl } from "@/lib/siteUrl";
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+    alternates: { canonical: "/" },
+};
+
 export default async function HomePage() {
     const site = await getSite();
+    const person = {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: site.name,
+        jobTitle: site.role,
+        description: site.tagline,
+        url: siteUrl(),
+        knowsAbout: [
+            ...(site.skills.Languages || []),
+            ...(site.skills["Frameworks & Libraries"] || []),
+        ],
+        sameAs: [
+            site.socials.github,
+            site.socials.lastfm,
+            `https://t.me/${site.socials.telegram}`,
+            `https://discord.com/users/${site.socials.discord}`,
+            site.socials.roblox,
+        ].filter((u) => typeof u === "string" && u.length > 8),
+    };
     return (
         <div className="grid grid-rows-[1fr] items-center justify-items-center min-h-[100dvh] p-4 pb-20 sm:p-24">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(person) }}
+            />
             <main className="flex flex-col gap-3 items-start max-w-[680px] w-full">
                 <Header />
 

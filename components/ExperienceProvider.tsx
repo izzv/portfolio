@@ -233,6 +233,9 @@ export default function ExperienceProvider({
         ? `https://cdn.discordapp.com/avatars/${lanyard.id}/${lanyard.avatar}.${lanyard.avatar.startsWith("a_") ? "gif" : "png"}?size=256`
         : defaultAvatar(DISCORD_ID);
 
+    // The music tint follows playback, exactly like the cover backdrop: while a
+    // track is playing the scene takes its colours from that cover, and when
+    // playback stops it returns to the default avatar palette.
     const source = playing && now?.image ? now.image : avatarUrl;
 
     useEffect(() => {

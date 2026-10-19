@@ -7,7 +7,10 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
     const site = await getSite();
-    return { title: `music — ${site.name}` };
+    return {
+        title: `music — ${site.name}`,
+        alternates: { canonical: "/music" },
+    };
 }
 
 export default async function MusicPage() {
