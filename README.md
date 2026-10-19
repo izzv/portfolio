@@ -208,6 +208,18 @@ one CSS file rather than a prop threaded through every component.
   `app/lego.css` holds both the loader and the `[data-build="lego"]` entrance,
   which drops each block in from above with a springy snap.
 
+Above the raw controls, **quick looks** applies a whole preset in one click —
+`minimal`, `glass`, `editorial`, `lego` or `neon` — and the badge reads `custom`
+as soon as the draft stops matching (`lib/appearancePresets.ts`, matched field by
+field). Every preset only sets the fields it names, so a saved accent or
+backdrop survives the click, and **reset look** returns the appearance section
+to the shipped defaults without touching the rest of the site.
+
+The **live preview** under the presets is the real hero: the same
+`appearanceVars()`, the same `data-*` attributes and the same `.hero-*` rules as
+`app/page.tsx`, boxed by `.pv` in `app/admin.css`. A slider updates it in the
+same frame, and a typing effect shows its caret there too.
+
 The defaults in `lib/siteConfig.ts` are exactly the look the site shipped with,
 so an old `site.json` upgrades cleanly: `normalizeSite()` clamps every number and
 falls back for every enum. The hero markup lives in

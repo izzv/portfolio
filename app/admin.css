@@ -341,3 +341,248 @@
         transform: none;
     }
 }
+
+/* ------------------------------------------------------------------
+   live appearance preview (/admin → appearance)
+
+   `.pv` is a small stage for the real `.hero-*` styles from
+   app/appearance.css: the markup and CSS variables are the same ones the
+   public hero uses, these rules only shrink the scale.
+------------------------------------------------------------------- */
+
+.pv {
+    position: relative;
+    margin-top: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    background:
+        radial-gradient(
+            120% 130% at 18% 8%,
+            rgba(255, 255, 255, 0.1),
+            transparent 62%
+        ),
+        linear-gradient(165deg, #17181c, #0b0c0f 72%);
+}
+
+.pv::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+        62% 62% at 86% 88%,
+        var(--accent-1, rgba(255, 255, 255, 0.1)),
+        transparent 72%
+    );
+    opacity: 0.55;
+}
+
+.pv-body {
+    position: relative;
+    padding: 18px 16px;
+}
+
+.pv .hero-section {
+    display: block;
+    min-height: 0;
+    padding: 0;
+}
+
+.pv .hero-inner {
+    max-width: 100%;
+    gap: 0.45rem;
+}
+
+.pv .hero-card {
+    padding: calc(var(--card-pad, 16px) * 0.7);
+}
+
+.pv[data-layout="modern"]:not([data-card="none"]) .hero-card {
+    padding-top: calc(var(--card-pad, 16px) * 0.7 + 1.5rem);
+}
+
+.pv .hero-modern {
+    padding-top: 0;
+}
+
+.pv .hero-banner {
+    height: 2.6rem;
+}
+
+.pv .hero-modern-avatar {
+    margin-top: -1.35rem;
+}
+
+.pv .hero-card-rule {
+    opacity: 0.9;
+}
+
+.pv .hero-name {
+    font-size: calc(var(--name-size, 1.5rem) * 0.82);
+    line-height: 1.1;
+}
+
+.pv .hero-bio {
+    font-size: 10px;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.pv .hero-portrait {
+    margin-bottom: 2px;
+}
+
+.pv .hero-avatar,
+.pv .hero-modern-avatar {
+    padding: 2px;
+}
+
+.pv .hero-side {
+    min-width: 0;
+}
+
+.pv-id {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+}
+
+.pv[data-align="center"] .pv-id {
+    align-items: center;
+}
+
+.pv[data-align="right"] .pv-id {
+    align-items: flex-end;
+}
+
+.pv-greet {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9.5px;
+    color: rgba(255, 255, 255, 0.58);
+}
+
+.pv-greet::before {
+    content: "";
+    width: 12px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.pv-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: #fff;
+    font-weight: 700;
+}
+
+.pv-caret {
+    width: 0.4ch;
+    height: 0.85em;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.pv-handle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9.5px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.pv-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+    font-size: 7px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.pv-face {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: conic-gradient(from 140deg, #d4d4d8, #71717a, #d4d4d8);
+    color: #18181b;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: lowercase;
+}
+
+.pv-strong {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.pv-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.pv-pill {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0 7px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.045);
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 8.5px;
+    letter-spacing: 0.02em;
+}
+
+.pv-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.pv-note {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.32);
+}
+
+/* small text button used by the appearance panel */
+.adm-reset {
+    flex: none;
+    padding: 5px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.7);
+    font: inherit;
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease;
+}
+
+.adm-reset:hover {
+    border-color: rgba(255, 255, 255, 0.24);
+    background: rgba(255, 255, 255, 0.09);
+    color: #fff;
+}
+
+.adm-reset:active {
+    transform: scale(0.985);
+}

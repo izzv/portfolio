@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { NAV_ICON_KEYS, navIcon } from "@/lib/navIcons";
+import { APPEARANCE_PRESETS, matchPreset } from "@/lib/appearancePresets";
+import AppearancePreview from "./AppearancePreview";
 import {
+    DEFAULT_APPEARANCE,
     NAV_GROUPS,
     type AppearanceLayout,
     type Biolink,
@@ -427,13 +430,67 @@ export function AppearancePanel({ draft, patch }: PanelProps) {
     const look = draft.appearance;
     const set = (partial: Partial<SiteConfig["appearance"]>) =>
         patch({ appearance: { ...look, ...partial } });
+    const presetId = matchPreset(look);
+    const preset = APPEARANCE_PRESETS.find((p) => p.id === presetId);
 
     return (
         <div className="flex flex-col gap-4">
             <Section
+                title="quick looks"
+                description="one click sets the whole look — every control below still works."
+                delay={0}
+                badge={
+                    <Pill tone={preset ? "good" : "muted"}>
+                        {preset ? preset.label : "custom"}
+                    </Pill>
+                }
+            >
+                <ChoiceCards
+                    label="preset"
+                    hint="changes this draft — save to publish"
+                    value={presetId}
+                    onChange={(id) => {
+                        const next = APPEARANCE_PRESETS.find((p) => p.id === id);
+                        if (next) set(next.patch);
+                    }}
+                    options={APPEARANCE_PRESETS.map((p) => ({
+                        value: p.id,
+                        label: p.label,
+                        blurb: p.blurb,
+                        preview: (
+                            <span
+                                style={{
+                                    display: "block",
+                                    height: 56,
+                                    borderRadius: 4,
+                                    background: p.swatch,
+                                    opacity: 0.9,
+                                }}
+                            />
+                        ),
+                    }))}
+                />
+                <AppearancePreview site={draft} look={look} />
+                <div className="pv-foot">
+                    <span className="pv-note">
+                        live preview — changes as you edit
+                    </span>
+                    <button
+                        type="button"
+                        className="adm-reset"
+                        onClick={() =>
+                            patch({ appearance: { ...DEFAULT_APPEARANCE } })
+                        }
+                    >
+                        reset look
+                    </button>
+                </div>
+            </Section>
+
+            <Section
                 title="layout"
                 description="how the top of the home page is put together."
-                delay={0}
+                delay={60}
                 badge={<Pill>{look.layout}</Pill>}
             >
                 <ChoiceCards
