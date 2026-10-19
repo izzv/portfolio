@@ -111,7 +111,7 @@ export default function CommissionModal({
                                 </span>
                             </p>
                             <a
-                                href="/commissions"
+                                href="#commissions"
                                 className="mt-2 inline-flex items-center gap-1 text-[11px] text-white/45 underline decoration-white/15 underline-offset-2 transition-colors hover:text-white/80"
                             >
                                 full commission details
@@ -122,7 +122,7 @@ export default function CommissionModal({
 
                     <div className="mt-5">
                         <a
-                            href="/contact"
+                            href="#contact"
                             className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white/90 transition-colors hover:bg-white/[0.1]"
                         >
                             contact me

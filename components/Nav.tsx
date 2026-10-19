@@ -1,12 +1,37 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useExperience, type RGB } from "./ExperienceProvider";
 import { useSite } from "./SiteProvider";
 import { navIcon } from "@/lib/navIcons";
 import { NAV_GROUPS, type NavGroup } from "@/lib/siteConfig";
+
+/** Sections that live on the home page, in the order the page renders them. */
+const PAGE_SECTIONS = [
+    "home",
+    "projects",
+    "music",
+    "commissions",
+    "skills",
+    "guestbook",
+    "biolinks",
+    "contact",
+] as const;
+
+function sectionId(href: string): string {
+    if (!href.startsWith("/")) return "";
+    const clean = href.split(/[?#]/)[0].replace(/\/+$/, "");
+    return clean === "" ? "home" : clean.slice(1);
+}
+
+/** `/#projects` for a page that is now a block on the scrolling page. */
+function anchorHref(href: string): string {
+    const id = sectionId(href);
+    return PAGE_SECTIONS.includes(id as (typeof PAGE_SECTIONS)[number])
+        ? `/#${id}`
+        : "";
+}
 
 function tint(
     [r, g, b]: RGB,
@@ -38,7 +63,12 @@ export default function Nav() {
         )
         .map(({ it }) => {
             const icon = navIcon(it.icon);
-            return { ...it, viewBox: icon.viewBox, path: icon.path };
+            return {
+                ...it,
+                viewBox: icon.viewBox,
+                path: icon.path,
+                anchor: anchorHref(it.href),
+            };
         });
 
     const navBg = tint(primary, 7, 0.2, 0.72);
@@ -50,9 +80,62 @@ export default function Nav() {
     const activeBorder = tint(primary, 95, 0.6, 0.5);
     const activeInk = tint(primary, 130, 0.55, 1);
 
-    const activeIndex = ITEMS.findIndex((it) =>
-        it.href === "/" ? pathname === "/" : pathname.startsWith(it.href),
+    const [activeSection, setActiveSection] = useState(
+        pathname === "/" ? "home" : "",
     );
+    const activeIndex = ITEMS.findIndex(
+        (it) => it.anchor && sectionId(it.href) === activeSection,
+    );
+
+    // The rail no longer changes routes, so the active item comes from the
+    // section currently crossing the upper third of the viewport. The same
+    // frame also fills the progress hairline along the bottom of the bar.
+    const sectionKey = ITEMS.map((it) => it.anchor).join("|");
+    const navRef = useRef<HTMLElement | null>(null);
+    useEffect(() => {
+        if (pathname !== "/") setActiveSection("");
+
+        let raf = 0;
+        const measure = () => {
+            raf = 0;
+
+            const doc = document.documentElement;
+            const max = doc.scrollHeight - window.innerHeight;
+            const progress =
+                max > 4 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+            navRef.current?.style.setProperty(
+                "--nav-progress",
+                progress.toFixed(4),
+            );
+
+            if (pathname !== "/") return;
+            const els = PAGE_SECTIONS.map((id) =>
+                document.getElementById(id),
+            ).filter((el): el is HTMLElement => !!el);
+            if (!els.length) return;
+
+            const line = window.innerHeight * 0.33;
+            let current = els[0].id;
+            for (const el of els) {
+                if (el.getBoundingClientRect().top <= line) current = el.id;
+            }
+            setActiveSection(current);
+        };
+        const onScroll = () => {
+            if (!raf) raf = requestAnimationFrame(measure);
+        };
+
+        const id = requestAnimationFrame(measure);
+        window.addEventListener("scroll", onScroll, { passive: true });
+        window.addEventListener("resize", onScroll);
+        return () => {
+            cancelAnimationFrame(id);
+            if (raf) cancelAnimationFrame(raf);
+            window.removeEventListener("scroll", onScroll);
+            window.removeEventListener("resize", onScroll);
+        };
+    }, [pathname, sectionKey]);
+
     const ulRef = useRef<HTMLUListElement>(null);
     const itemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
     const [box, setBox] = useState({ x: 0, y: 0, w: 0, h: 0, ready: false });
@@ -86,6 +169,7 @@ export default function Nav() {
 
     return (
         <nav
+            ref={navRef}
             aria-label="Primary"
             style={
                 {
@@ -94,13 +178,22 @@ export default function Nav() {
                     boxShadow: `0 20px 44px -20px ${glow}, 0 20px 40px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)`,
                     ["--tip-bg" as string]: tipBg,
                     ["--tip-border" as string]: tipBorder,
+                    ["--nav-progress-fill" as string]: tint(
+                        primary,
+                        120,
+                        0.5,
+                        0.8,
+                    ),
                 } as React.CSSProperties
             }
             className="site-nav rounded-xl border p-1 backdrop-blur-xl transition-[background,border-color,box-shadow] duration-700 ease-out sm:rounded-lg"
         >
+            <span className="nav-progress" aria-hidden="true">
+                <span />
+            </span>
             <ul
                 ref={ulRef}
-                className="relative flex flex-row gap-0.5 sm:flex-col"
+                className="relative flex flex-row gap-0.5"
             >
                 <span
                     aria-hidden="true"
@@ -129,13 +222,13 @@ export default function Nav() {
                                 />
                             )}
                             <li className="nav-item relative">
-                                <Link
+                                <a
                                     ref={(el) => {
                                         itemRefs.current[i] = el;
                                     }}
-                                    aria-current={active ? "page" : undefined}
+                                    aria-current={active ? "location" : undefined}
                                     aria-label={it.label}
-                                    href={it.href}
+                                    href={it.anchor || it.href}
                                     className={
                                         "relative z-10 flex h-8 items-center justify-center rounded-md px-2.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-white/30 sm:h-8 sm:w-8 sm:px-0 " +
                                         (active
@@ -166,7 +259,7 @@ export default function Nav() {
                                             <path d={it.path} />
                                         </svg>
                                     </span>
-                                </Link>
+                                </a>
                                 <span className="nav-tip" role="tooltip">
                                     {it.label}
                                 </span>

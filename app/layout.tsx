@@ -11,6 +11,7 @@ import "./palette.css";
 import "./guestbook.css";
 import "./commissions.css";
 import "./nav.css";
+import "./build.css";
 import ExperienceProvider from "@/components/ExperienceProvider";
 import PreviewProvider from "@/components/PreviewProvider";
 import BlossomBackground from "@/components/BlossomBackground";
@@ -23,6 +24,8 @@ import Views from "@/components/Views";
 import ColorOverlay from "@/components/ColorOverlay";
 import SiteProvider from "@/components/SiteProvider";
 import CommandPalette from "@/components/CommandPalette";
+import HashScroll from "@/components/HashScroll";
+import BuildOnScroll from "@/components/BuildOnScroll";
 import { getSite } from "@/lib/siteStore";
 import { getProjects } from "@/lib/projectsStore";
 import { siteUrl } from "@/lib/siteUrl";
@@ -95,6 +98,15 @@ export default async function RootLayout({
     return (
         <html lang="en" className="dark font-sans hero_YXskvN9J">
             <body className="antialiased bg-black text-white [color-scheme:dark]">
+                {/* Gate the build-on-scroll hidden state before first paint, and
+                    only when the reader has not asked for reduced motion. The
+                    timer is a failsafe so a broken bundle can never leave the
+                    page blank. */}
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `try{if(!matchMedia("(prefers-reduced-motion: reduce)").matches){document.documentElement.dataset.reveal="on";setTimeout(function(){if(!document.querySelector("[data-reveal].is-built")){document.documentElement.removeAttribute("data-reveal")}},5000)}}catch(e){}`,
+                    }}
+                />
                 <SiteProvider config={site}>
                     <ExperienceProvider>
                         <PreviewProvider>
@@ -102,6 +114,8 @@ export default async function RootLayout({
                             <CoverBackdrop />
                             <CanvasBackdrop />
                             <Nav />
+                            <HashScroll />
+                            <BuildOnScroll />
                             <DynamicIsland />
                             <PageTransition>{children}</PageTransition>
                             <Views />

@@ -219,6 +219,7 @@ export default function AdminShell({
 
     const tabs = TABS;
 
+    // The top padding that clears the fixed nav bar lives in app/admin.css.
     return (
         <div className="adm-root relative min-h-[100dvh] px-4 pb-40 pt-6 sm:px-6 sm:pt-10">
             <div className="adm-aurora" aria-hidden="true">

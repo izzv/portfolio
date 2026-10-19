@@ -1,7 +1,8 @@
 # ryan
 
-Personal site — Next.js 14 (App Router), React 18, Tailwind. Eight pages: home,
-music, projects, commissions, skills, biolinks, guestbook and contact, with live
+Personal site — Next.js 14 (App Router), React 18, Tailwind. One scrolling page:
+home, projects, music, commissions, skills, guestbook, biolinks and contact are
+stacked as full-height sections on `/` and reached by scrolling, with live
 Discord presence (Lanyard) and Last.fm listening data. Everything public is
 edited from the private admin at `/admin`.
 
@@ -18,24 +19,24 @@ page follows whatever the config says.
 
 ---
 
-## Pages
+## Sections
 
-| Route | Renders | Data |
-| --- | --- | --- |
-| `/` | name, Discord handle/avatar, short bio, listening line, social pills | `site.name`, `site.socials`, Lanyard, `/api/nowplaying` |
-| `/music` | albums, tracks, favourite (with preview playback + progress), stats | Last.fm via `/api/top`, `/api/stats`, `/api/play` |
-| `/projects` | featured project card(s) with screenshots, then any extra projects | `projects.json` via `lib/projectsStore.ts` |
-| `/commissions` | status, crypto-only payment block with accepted coins, scope and process | `site.commission` |
-| `/skills` | grouped skill pills with brand icons | `site.skills` |
-| `/biolinks` | two external profile links (`wsp.baby/yo`, `injuri.ng/no`) | `site.biolinks` |
-| `/contact` | Discord hero card + one card per contact | `site.socials`, `site.contacts` |
-| `/guestbook` | open form plus approved notes | `guestbook.json` via `/api/guestbook` |
-| `/admin` | password-gated site editor: profile, socials, links, skills, nav, commissions, guestbook, projects, dashboard | `site.json` / `guestbook.json` / `projects.json` |
+| Section (on `/`) | Old route | Renders | Data |
+| --- | --- | --- | --- |
+| `#home` | `/` | name, Discord handle/avatar, short bio, listening line, social pills | `site.name`, `site.socials`, Lanyard, `/api/nowplaying` |
+| `#projects` | `/projects` | featured project card(s) with screenshots, then any extra projects | `projects.json` via `lib/projectsStore.ts` |
+| `#music` | `/music` | albums, tracks, favourite (with preview playback + progress), stats | Last.fm via `/api/top`, `/api/stats`, `/api/play` |
+| `#commissions` | `/commissions` | status, crypto-only payment block with accepted coins, scope and process | `site.commission` |
+| `#skills` | `/skills` | grouped skill pills with brand icons | `site.skills` |
+| `#guestbook` | `/guestbook` | open form plus approved notes | `guestbook.json` via `/api/guestbook` |
+| `#biolinks` | `/biolinks` | two external profile links (`wsp.baby/yo`, `injuri.ng/no`) | `site.biolinks` |
+| `#contact` | `/contact` | Discord hero card + one card per contact | `site.socials`, `site.contacts` |
+| `/admin` | — | password-gated site editor: profile, socials, links, skills, nav, commissions, guestbook, projects, dashboard | `site.json` / `guestbook.json` / `projects.json` |
 
-Each page still has its own `<title>` (`music — ryan`, `projects — ryan`, …) from
-`site.name`; the root layout supplies the default `name — role` title plus the
-social/SEO metadata described below. Anything unmatched renders `app/not-found.tsx`
-with a real 404 status.
+Every section route still exists and answers with a `307` to `/#section`, so old
+links and bookmarks keep working. `/` is the only public URL in `sitemap.xml`.
+The root layout supplies the `name — role` `<title>` plus the social/SEO metadata
+described below, and `app/not-found.tsx` renders a real 404 status.
 
 ## Where identity lives
 
@@ -60,7 +61,7 @@ The name is `ryan` (it was `ryan.ong`). Nothing else hardcodes it — the home
 ## Projects
 
 Projects are data, not source: `projects.json` at the repo root is the source of
-truth and `/projects` reads it on every request (`export const dynamic =
+truth and the projects section reads it on every request (`export const dynamic =
 "force-dynamic"`), so an admin save shows up without a rebuild.
 
 One project is listed right now:
@@ -158,8 +159,8 @@ calls `revalidatePath("/", "layout")` after a save).
 `app/admin-utilities.css` is a generated utility snapshot used only by the
 admin markup (the site's main utility sheet predates it); regenerate it if you
 add new utility classes to `components/admin/*`. Because it loads after the
-site sheet, its `.left-1\/2` used to win over the nav's desktop override and
-park the rail in the middle of the page — `.site-nav` in `app/nav.css` owns that
+site sheet, its `.left-1\/2` used to win over the nav's placement rule and park
+the bar in the middle of the page — `.site-nav` in `app/nav.css` owns that
 placement now so the two sheets cannot fight over it.
 
 ```bash
@@ -171,9 +172,58 @@ curl -s -b /tmp/cj localhost:3000/api/admin/site
 `GET`/`PUT /api/admin/site` returns `401` without a session, `403` for a write
 from another origin, `413` above 256 KB.
 
+## One scrolling page
+
+`app/page.tsx` composes the whole public site: `components/sections/*` renders
+the eight blocks, each at least `100dvh` tall with its own top padding, so the
+fixed top bar never sits on the content and an anchor jump lands with the
+section's top edge at the viewport top.
+
+- **`components/Nav.tsx`** draws the bar itself (centered, icons only, group
+  hairlines) and, on `/`, tracks which section is crossing the upper third of
+  the viewport with a passive scroll listener so the active pill follows the
+  reader without any clicks.
+- **`components/HashScroll.tsx`** re-aligns a deep link (`/#contact`) after the
+  music tabs and images settle in and change the page height, and stops the
+  moment the reader scrolls, taps or types.
+- **Section routes redirect**: `app/projects/page.tsx` and friends are seven-line
+  `redirect("/#section")` pages, so nothing else had to change to keep the URLs
+  alive.
+
+Music tab clicks used to `router.replace('/music?tab=…')`; they now update the
+query string with `history.replaceState`, which keeps the reader exactly where
+they are instead of bouncing through a route.
+
+## Build-on-scroll
+
+The page assembles itself as you scroll instead of playing every entrance
+transition off-screen at load:
+
+- Any block marked `data-reveal` starts unbuilt (`opacity: 0`, pushed down,
+  blurred) and is finished by `components/BuildOnScroll.tsx` when it enters the
+  viewport. Only `opacity`, `transform` and `filter` animate, so nothing reflows
+  and section heights/offsets are unchanged.
+- Blocks stagger: the component assigns `--reveal-i` per element in DOM order
+  within each parent, and `app/build.css` turns that into a 65 ms step, so a row
+  of pills or cards builds left to right.
+- **The hidden half only exists behind a JS gate.** The layout sets
+  `html[data-reveal="on"]` before first paint, and only when the reader has not
+  asked for reduced motion; the CSS keys every hiding rule off that attribute.
+  Without JS, with `prefers-reduced-motion: reduce`, or if the reveal script ever
+  fails (a 5 s failsafe drops the attribute), the page is simply all there. A
+  `visibility: hidden` on the hidden state also keeps unbuilt controls out of the
+  tab order.
+- The bar carries a 2 px progress hairline along its bottom edge, driven by the
+  same `requestAnimationFrame` scroll listener that tracks the active section
+  (`--nav-progress`, no React re-render per frame).
+
+The older `.anim-item` load animation is still used by `/admin`, `/not-found`
+and the admin panels; the public sections no longer use it.
+
 ## Guestbook
 
-`/guestbook` is a public wall: name, message and an optional link, no account.
+The guestbook is the `#guestbook` section (`/guestbook` redirects to it): name,
+message and an optional link, no account.
 Notes land with `approved: false` and are invisible until they are approved in
 `/admin` → guestbook, which is the only moderation step. `PUT
 /api/admin/guestbook` replaces the list; deleting a note is a `PUT` without it.
@@ -187,13 +237,14 @@ as plain React text (escaped) and optional links are `nofollow`.
 
 ## Commissions — crypto only
 
-`/commissions` is the offer page: current availability, the starting price from
+The `#commissions` section (`/commissions` redirects to it) is the offer:
+current availability, the starting price from
 `site.commission.price`, a payment block that says **crypto only** in as many
 ways as is tasteful, the accepted coins (`site.commission.coins`, comma
 separated, default `BTC, ETH, USDT, SOL, LTC`), what gets built, a three-step
 process and a Discord CTA. The toggle in `/admin` → commissions controls the
-"open right now" / "closed right now" line, the bar above `/projects` and the
-pill on home; the page itself is always reachable.
+"open right now" / "closed right now" line, the bar above the projects section
+and the pill on home; the section itself is always there.
 
 The same crypto-only line is in the commission modal (`components/
 CommissionModal.tsx`), which links here for the full terms.
@@ -206,21 +257,22 @@ Music tabs used to play a clip from 0:00 and pretend. Now every page shares one
 - `GET /api/play` resolves the best-matching 30s store preview (Deezer first,
 then Spotify, then iTunes — with a title/artist score so a cover cannot win)
 and reports `offsetMs`, where the clip starts inside the song.
-- Pressing play on the header, or a track on `/music`, seeks the clip to the
+- Pressing play on the header, or a track in the music section, seeks the clip to the
 live playback position (when the track is the one playing and that position is
 inside the clip), so the audio you hear is the part the lyrics are on. The
 header's word-by-word clock uses the audio position while a clip plays, not the
 estimated Last.fm clock; the live track changing stops the clip.
-- The player survives client-side navigation, so a clip started on `/music`
-keeps playing on the home page and the lyrics stay with it. `/music` shows a
-real progress bar, elapsed/duration and whether the clip is matched to live
-playback.
+- The player survives client-side navigation, so a clip started from the music
+section keeps playing while you scroll on and the lyrics stay with it. The music
+section shows a real progress bar, elapsed/duration and whether the clip is
+matched to live playback.
 
 ## Command palette
 
 `⌘K` / `ctrl+K` (or `/` outside a field, or the `⌘K` pill on home) opens a
-palette over pages, projects, socials and three actions (copy Discord handle,
-open `/admin`, scroll to top). `↑`/`↓` move, `↵` opens, `esc` closes.
+palette over sections, projects, socials and three actions (copy Discord handle,
+open `/admin`, scroll to top). Section entries scroll on `/` and navigate from
+anywhere else. `↑`/`↓` move, `↵` opens, `esc` closes.
 Arrow/enter work without touching the mouse, and the list is fuzzy-filtered.
 
 ## How it was built
@@ -317,15 +369,17 @@ Confirmed:
 - **Adding a contact card** → add it in `/admin` → links; the grid renders it and
   picks an icon from `BRAND_ICON` by `platform` (unknown platforms get a link
   glyph).
-- **Adding a biolink** → add it in `/admin` → links; omit `img` and the pill falls back to a letter tile. `/biolinks` renders as one embed-style card (`app/biolinks/page.tsx` + the `.embed-*` rules in `app/globals.css`): a hero banner with `site.tagline`, then every biolink plus the socials from `site.socials` as pills, so adding a link needs no markup change. The page currently points at two external profiles (`https://wsp.baby/yo`, `https://injuri.ng/no`).
+- **Adding a biolink** → add it in `/admin` → links; omit `img` and the pill falls back to a letter tile. `#biolinks` renders as one embed-style card (`components/sections/BiolinksSection.tsx` + the `.embed-*` rules in `app/globals.css`): a hero banner with `site.tagline`, then every biolink plus the socials from `site.socials` as pills, so adding a link needs no markup change. The section currently points at two external profiles (`https://wsp.baby/yo`, `https://injuri.ng/no`).
 - **Last.fm account** → `.env.local` (`LASTFM_USER`) plus `socials.lastfm`.
 - **Timezone** → profile tab (used by `LocalTime`).
 - **Navigation** → nav tab; icons come from the presets in `lib/navIcons.ts`.
-  Every item also has a **group** (`core`, `work`, `social`). The rail always
+  Every item also has a **group** (`core`, `work`, `social`). The bar always
   draws groups in that order with a hairline between them, and keeps the admin
-  order inside each group — so the rail reads: home/projects/music, then
+  order inside each group — so the bar reads: home/projects/music, then
   commissions/skills, then guestbook/biolinks/contact. Saved configs from
   before groups existed are classified by their `href`, not their position.
+  An item whose `href` names a section on `/` becomes a `/#section` anchor, so
+  the same config drives both the bar and the scrolling page.
 
 ## Background
 
@@ -449,10 +503,11 @@ changes, and the canonical output stays on `ryan.ong`.
   `https://ryan.ong` from `lib/domains.ts` — everything absolute (sitemap, OG
   URLs, JSON-LD) is built from it, and it deliberately ignores the per-deploy
   Vercel host so previews never leak into indexed metadata.
-- every page sets `alternates.canonical` for its own path, so a host that has
-  not been added to Vercel yet still points search engines at `ryan.ong`.
-- `app/sitemap.ts` lists the eight public routes with priorities and change
-  frequencies; `app/robots.ts` points at it and disallows `/admin` + `/api/`.
+- `/` sets `alternates.canonical` to `/` — the section routes redirect into it,
+  so every public URL points search engines at `ryan.ong` even before a host
+  has been added to Vercel.
+- `app/sitemap.ts` lists that one URL; `app/robots.ts` points at it and
+  disallows `/admin` + `/api/`.
   `/admin` also sends `noindex, nofollow` in its own metadata.
 - `app/page.tsx` emits JSON-LD `Person` (name, role, tagline, skills, socials)
   from the site config, so search results can carry the profile.
@@ -536,6 +591,6 @@ preview, so the favourite tab plays).
   offset, so a track whose label picked another window will be off by exactly
   that difference. Without Spotify owner credentials the live position used for
   the first seek is the estimate from `lib/playClock.ts`.
-- `/guestbook` in the nav comes from the config. A `site.json` saved before this
-  route existed keeps its old nav; add the item in `/admin` → nav (it is still
-  reachable from the home link, the palette and the direct URL).
+- The guestbook item in the nav comes from the config. A `site.json` saved
+  before it existed keeps its old nav; add the item in `/admin` → nav (the
+  section is still reachable from the home link, the palette and `/#guestbook`).

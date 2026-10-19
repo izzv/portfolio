@@ -57,7 +57,7 @@ export default function Guestbook({
 
     return (
         <div className="gb-wrap">
-            <form className="gb-form" onSubmit={submit}>
+            <form data-reveal="" className="gb-form" onSubmit={submit}>
                 <div className="gb-form-head">
                     <h2>leave a note</h2>
                     <span>
@@ -142,12 +142,8 @@ export default function Guestbook({
                         nothing here yet. be the first to leave a mark.
                     </p>
                 )}
-                {entries.map((entry, i) => (
-                    <article
-                        key={entry.id}
-                        className="gb-entry anim-item"
-                        style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
-                    >
+                {entries.map((entry) => (
+                    <article key={entry.id} data-reveal="" className="gb-entry">
                         <header>
                             <span className="gb-avatar" aria-hidden="true">
                                 {initial(entry.name)}

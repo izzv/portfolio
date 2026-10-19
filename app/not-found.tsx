@@ -7,10 +7,10 @@ export const metadata: Metadata = {
 };
 
 const LINKS = [
-    { href: "/", label: "home" },
-    { href: "/projects", label: "projects" },
-    { href: "/commissions", label: "commissions" },
-    { href: "/contact", label: "contact" },
+    { href: "/#home", label: "home" },
+    { href: "/#projects", label: "projects" },
+    { href: "/#commissions", label: "commissions" },
+    { href: "/#contact", label: "contact" },
 ];
 
 export default function NotFound() {

@@ -10,7 +10,7 @@ export default function CommissionBar() {
 
     return (
         <>
-            <div className="w-full">
+            <div data-reveal="" className="w-full">
                 <button
                     type="button"
                     onClick={() => setOpen(true)}

@@ -1,50 +1,100 @@
 /* ------------------------------------------------------------------
    primary nav placement.
 
-   It used to depend on `left-1/2` + `-translate-x-1/2` + `sm:left-4` etc.
-   The generated admin utility sheet (loaded after the site sheet) also
-   contains `.left-1\/2`, so the desktop override lost the cascade and the
-   rail sat in the middle of the content. These rules own the placement
+   The rail floats over the top edge of every page. It used to be a left
+   rail on desktop; the generated admin utility sheet (loaded after the
+   site sheet) also contains `.left-1\/2`, so these rules own placement
    instead of racing the utility sheets.
 ------------------------------------------------------------------- */
 
 .site-nav {
     position: fixed;
-    bottom: 1rem;
+    top: 0.75rem;
+    bottom: auto;
     left: 50%;
     z-index: 50;
+    max-width: calc(100vw - 1.5rem);
     transform: translateX(-50%);
 }
 
+/* ------------------------------------------------------------------
+   one scrolling page
+
+   Every block is at least a screen tall and carries its own top padding,
+   so the fixed rail never sits on top of the content. Anchor jumps land
+   with the section's top edge at the viewport top.
+------------------------------------------------------------------- */
+
+html {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
+.site-section {
+    display: grid;
+    grid-template-rows: 1fr;
+    justify-items: center;
+    min-height: 100dvh;
+    padding: 5rem 1rem 5rem;
+}
+
+.site-section-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    width: 100%;
+    max-width: 680px;
+}
+
 @media (min-width: 640px) {
-    .site-nav {
-        bottom: auto;
-        top: 50%;
-        left: 1rem;
-        transform: translateY(-50%);
+    .site-section {
+        padding: 7rem 6rem 6rem;
     }
 }
 
 /* ------------------------------------------------------------------
-   group divider — the rail reads as core / work / social
+   build progress — a hairline along the bottom of the bar that fills as
+   the reader scrolls, so the bar doubles as a progress readout
+------------------------------------------------------------------- */
 
-   The bar is horizontal on phones and vertical from 640px, so the rule
-   flips its axis with it.
+.nav-progress {
+    position: absolute;
+    left: 9px;
+    right: 9px;
+    bottom: 3px;
+    height: 2px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.07);
+    pointer-events: none;
+}
+
+.nav-progress > span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    transform: scaleX(var(--nav-progress, 0));
+    transform-origin: left center;
+    background: var(--nav-progress-fill, rgba(255, 255, 255, 0.45));
+    transition: transform 140ms linear;
+}
+
+/* ------------------------------------------------------------------
+   group divider — the bar reads as core / work / social
 ------------------------------------------------------------------- */
 
 .nav-sep {
     flex: 0 0 auto;
-    align-self: stretch;
+    align-self: center;
     width: 1px;
-    margin: 4px 3px;
+    height: 22px;
+    margin: 0 3px;
     border-radius: 1px;
     background: rgba(255, 255, 255, 0.1);
-}
-
-@media (min-width: 640px) {
-    .nav-sep {
-        width: auto;
-        height: 1px;
-        margin: 3px 4px;
-    }
 }

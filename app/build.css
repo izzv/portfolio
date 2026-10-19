@@ -1,0 +1,47 @@
+/* ------------------------------------------------------------------
+   the page builds itself as you scroll
+
+   Every block marked `data-reveal` starts unbuilt and is finished by
+   `components/BuildOnScroll.tsx` as it enters the viewport. The hidden state
+   is gated on `html[data-reveal="on"]`, which the layout sets before paint and
+   only when the reader has not asked for reduced motion — so with no JS (or
+   with reduced motion) every block is simply there.
+
+   Only opacity / transform / filter animate, so nothing reflows and section
+   heights stay exactly what they were.
+------------------------------------------------------------------- */
+
+html[data-reveal="on"] [data-reveal] {
+    opacity: 0;
+    /* hidden rather than merely transparent, so an unbuilt block cannot be
+       tabbed into before it exists */
+    visibility: hidden;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(5px);
+    transition:
+        opacity 640ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 760ms cubic-bezier(0.22, 1, 0.36, 1),
+        filter 560ms ease-out;
+    /* siblings stagger instead of popping in together */
+    transition-delay: calc(var(--reveal-i, 0) * 65ms);
+    will-change: opacity, transform, filter;
+}
+
+html[data-reveal="on"] [data-reveal].is-built {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    filter: none;
+    will-change: auto;
+}
+
+/* the gate already skips reduced motion; this is the belt to that braces */
+@media (prefers-reduced-motion: reduce) {
+    html[data-reveal="on"] [data-reveal] {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        filter: none;
+        transition: none;
+    }
+}

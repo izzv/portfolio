@@ -38,6 +38,25 @@ function fuzzy(needle: string, hay: string): number {
     return score;
 }
 
+const SECTION_IDS = [
+    "home",
+    "projects",
+    "music",
+    "commissions",
+    "skills",
+    "guestbook",
+    "biolinks",
+    "contact",
+];
+
+/** Turn a page route into the matching scroll target when one exists. */
+function sectionHref(href: string): string {
+    const clean = href.split(/[?#]/)[0].replace(/\/+$/, "");
+    if (!clean.startsWith("/")) return href;
+    const id = clean === "" ? "home" : clean.slice(1);
+    return SECTION_IDS.includes(id) ? `/#${id}` : href;
+}
+
 export default function CommandPalette({
     projects,
 }: {
@@ -61,6 +80,19 @@ export default function CommandPalette({
 
     const go = useCallback(
         (href: string) => {
+            // `/` + a known section id: scroll on the home page, navigate when
+            // the palette is opened somewhere else.
+            if (href.startsWith("/#")) {
+                const target = document.getElementById(href.slice(2));
+                if (target) {
+                    close();
+                    target.scrollIntoView({ behavior: "smooth", block: "start" });
+                    window.history.replaceState(null, "", href.slice(1));
+                } else {
+                    router.push(href);
+                }
+                return;
+            }
             close();
             if (href.startsWith("/")) router.push(href);
             else if (href.startsWith("#")) {
@@ -76,26 +108,30 @@ export default function CommandPalette({
     const entries = useMemo<Entry[]>(() => {
         const pages: Entry[] = site.nav
             .filter((n) => !n.hidden)
-            .map((n) => ({
-                id: `page:${n.href}`,
-                group: "pages",
-                label: n.label,
-                hint: n.href,
-                run: () => go(n.href),
-            }));
+            .map((n) => {
+                const target = sectionHref(n.href);
+                return {
+                    id: `page:${n.href}`,
+                    group: "pages",
+                    label: n.label,
+                    hint: target,
+                    run: () => go(target),
+                };
+            });
         // A saved nav from before /guestbook existed would otherwise hide the
         // page from the palette as well as the rail.
         for (const [href, label] of [
             ["/guestbook", "Guestbook"],
             ["/commissions", "Commissions"],
         ] as const) {
-            if (!pages.some((p) => p.hint === href))
+            const target = sectionHref(href);
+            if (!pages.some((p) => p.hint === target))
                 pages.push({
                     id: `page:${href}`,
                     group: "pages",
                     label,
-                    hint: href,
-                    run: () => go(href),
+                    hint: target,
+                    run: () => go(target),
                 });
         }
 
@@ -104,7 +140,7 @@ export default function CommandPalette({
             group: "projects",
             label: p.name,
             hint: p.description || "project",
-            run: () => go(p.url || "/projects"),
+            run: () => go(p.url || "/#projects"),
         }));
 
         const socialEntries: Entry[] = [

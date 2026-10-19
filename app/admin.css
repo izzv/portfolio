@@ -253,6 +253,21 @@
 
 .adm-toast {
     animation: adm-toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+    /* below the fixed top nav bar */
+    top: 5rem;
+}
+
+/* The nav bar floats over every page, so the panel starts under it. Set here
+   rather than with a utility class: the generated admin utility sheet has no
+   large padding-top, and this file loads after it. */
+.adm-root {
+    padding-top: 5rem;
+}
+
+@media (min-width: 640px) {
+    .adm-root {
+        padding-top: 6rem;
+    }
 }
 
 /* jump cards nudge */

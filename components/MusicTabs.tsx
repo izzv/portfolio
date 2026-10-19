@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useExperience, type RGB } from "./ExperienceProvider";
 import { clock, trackKey, usePreview } from "./PreviewProvider";
 
@@ -26,7 +26,6 @@ const LABELS: Record<(typeof TABS)[number], string> = {
 };
 
 export default function MusicTabs() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { primary } = useExperience();
 
@@ -46,7 +45,11 @@ export default function MusicTabs() {
 
   function selectTab(v: Tab) {
     setTab(v);
-    router.replace(`/music?tab=${v}`, { scroll: false });
+    // The section lives on the home page now; keep the tab in the URL without
+    // navigating away from the scroll position.
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", v);
+    window.history.replaceState(null, "", url);
   }
   const [albums, setAlbums] = useState<Item[]>([]);
   const [tracks, setTracks] = useState<Item[]>([]);
@@ -138,7 +141,7 @@ export default function MusicTabs() {
   };
 
   return (
-    <div data-slot="tabs" className="flex flex-col gap-2 w-full">
+    <div data-slot="tabs" data-reveal="" className="flex flex-col gap-2 w-full">
       <div
         ref={listRef}
         role="tablist"
